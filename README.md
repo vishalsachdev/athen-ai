@@ -1,4 +1,4 @@
-# Athens AI
+# athen-ai
 
 ## Branch Preview Workflow (GitHub + Vercel)
 
@@ -20,4 +20,6 @@
 - Open the PR and click the Preview link under the first comment or in the Deployments box
 - Leave comments on the PR or click "Approve" if ready to merge
 
-See  for the standardized PR format and  for who must approve.
+Project name, repo, and Vercel deployment use the slug `athen-ai`.
+
+See your team's contribution guide for the standardized PR format and code owners for approvals.
