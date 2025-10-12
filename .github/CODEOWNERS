@@ -1,0 +1,6 @@
+# Replace the placeholders below with real GitHub handles or teams.
+# Example: @your-org/engineering @client-handle
+# When branch protection is configured to "Require review from Code Owners",
+# PRs must be approved by at least one of the owners below.
+
+* @client-handle @engineering-handle
