@@ -1,7 +1,9 @@
 ## athen-ai Product Specification (MVP and Beyond)
 
+## What is athen-ai? - Athen-ai functions as an AI consulting platform specifically tailored for healthcare professionals, aiming to guide AI naive healthcare professionals in effective AI integration in medicine.
+
 ### Purpose
-Turn `idea-brainstorm.md` into an actionable, high-signal specification for planning, design, and implementation.
+This document outlines the product specification for athen-ai, including the MVP and beyond.
 
 ### User Roles and Permissions
 - **Clinician/User**: Create plans and workflows, link tools, upload files, use assistant, manage privacy.
@@ -84,6 +86,13 @@ Turn `idea-brainstorm.md` into an actionable, high-signal specification for plan
 - **Reliability**: 99.9% target; idempotent APIs; retriable background jobs.
 - **Observability**: app logs, audit logs, metrics (plans created, activation rate), traces.
 
+### Safety & Compliance Baseline (MVP)
+- **HIPAA boundary**: No PHI leaves approved vendors; BAAs in place for model and hosting providers; support org-managed keys and BYO keys.
+- **Data handling**: PHI flag required on uploads; dual de-identification (automated + human preview) before any sharing/community publishing; provenance ledger records data source, model/provider/version, approver, and redaction status.
+- **Access controls**: Role-scoped access; least-privilege by default; full audit trail of reads/writes; optional IP allowlisting and device posture for orgs.
+- **Attestation & risk tiers**: Classify features by clinical risk (low/medium/high); require clinician attestation before inserting AI-generated clinical content; stricter review/controls for higher tiers.
+- **Retention & incidents**: Default retention windows; export/erasure workflows; breach notification process documented and tested.
+
 ### MVP Scope (4–6 weeks)
 - Dashboard (basic metrics)
 - Planner (core flow)
@@ -96,6 +105,14 @@ Turn `idea-brainstorm.md` into an actionable, high-signal specification for plan
 - Auth + onboarding
 - Audit logs (admin-readable)
 - HIPAA storage choices and encryption
+
+### Clinician MVP Acceptance Criteria
+- **Note drafting**: Specialty templates (SOAP/H&P); tone and language controls; ≤2 clicks to insert via smart phrase/side panel; diffs tracked; citations included when external sources used; clinician attestation required before saving; edits and overrides logged.
+- **Patient instructions**: Output at 6th–8th grade reading level; multilingual support; contraindication warnings surfaced; explicit clinician review required.
+- **Prior authorization packet**: Checklist-driven data capture; attachment/packet builder; exportable packet (PDF); track turnaround time, approvals, appeals, and denials avoided.
+- **Uploads & de-identification**: PHI flag mandatory; de-ID preview must be approved by clinician before sharing; provenance ledger updated on approval; storage remains within HIPAA boundary.
+- **Connections**: OAuth/BYO keys; scopes disclosed and logged; successful "Test connection" flow required; no payment information stored by the platform.
+- **EHR integration path**: Phase 0 clipboard/smart phrases; Phase 1 limited FHIR read (demographics/meds/problems) with audit entries for each access.
 
 ### High-level Data Model (illustrative)
 ```typescript
@@ -231,11 +248,12 @@ type AuditLog = {
 - Assistant panel (context chips: page, KBs, tools; citations)
 
 ### Analytics and KPIs
-- **Activation**: onboarding completion rate; first plan within 24h.
-- **Value**: time-to-first-plan (TTFP), time-to-first-connection (TTFC).
-- **Engagement**: weekly active planners, workflow activations, assistant queries.
-- **Quality**: plan completion rating, community import rate.
-- **Safety**: PHI leakage incidents (target 0), failed redactions.
+- **Clinical productivity**: time to close chart; after-hours charting minutes (baseline vs post); note insertions per session.
+- **Quality of outputs**: edit/override rate on AI-inserted text; citation usage; plan completion rating; community import rate.
+- **Prior authorization**: time to submit; approval rate; appeal rate; denials avoided.
+- **Activation**: onboarding completion; time-to-first-plan (TTFP); time-to-first-connection (TTFC); preview-to-merge ratio.
+- **Engagement**: weekly active planners; workflow activations; assistant queries.
+- **Safety**: PHI leakage incidents (target 0); failed de-ID audits; anomalous access events.
 
 ### Risks and Mitigations
 - **PHI handling risk**: strict redaction review + audit logs; default PHI=on.
