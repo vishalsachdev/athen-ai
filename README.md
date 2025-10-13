@@ -11,6 +11,10 @@ athen-ai is an AI consulting and activation platform for clinicians and healthca
   2. Go to Issues → New Issue → “Requirements Intake”
   3. Paste transcript, add specialty/setting, and proposed MVP targets
 
+## Project Docs
+- Idea brief: see [`idea-brainstorm.md`](./idea-brainstorm.md)
+- Product specification (MVP → roadmap): see [`product-spec.md`](./product-spec.md)
+
 ## Branch Preview Workflow (GitHub + Vercel)
 
 1. Every branch and pull request gets its own Vercel Preview deployment
