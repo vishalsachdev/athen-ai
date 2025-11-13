@@ -4,12 +4,6 @@
 
 athen-ai is an AI consulting and activation platform for clinicians and healthcare teams. It focuses on high-impact, practical workflows like clinical note drafting, patient instructions, and prior authorization packet preparation—delivered with HIPAA-aware guardrails, simple EHR-friendly insertion paths (e.g., smart phrases/clipboard), and measurable outcomes (time saved, after-hours reduction, turnaround times).
 
-### Clarify Requirements (with a domain expert)
-- Use the Athen‑ai Requirements Bot to craft a quantified Problem Statement and a short list of prioritized use cases: [requirements bot link](https://uiuc.chat/Athen-ai-requiments-bot)
-- After your chat, please submit the transcript as a GitHub Issue:
-  1. Copy the chat transcript
-  2. Go to Issues → New Issue → “Requirements Intake”
-  3. Paste transcript, add specialty/setting, and proposed MVP targets
 
 ## Project Docs
 - Idea brief: see [`idea-brainstorm.md`](./idea-brainstorm.md)
