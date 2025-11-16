@@ -14,7 +14,7 @@ This document outlines the product specification for athen-ai, including the MVP
 ### Core User Journeys
 - **Onboarding (Welcome Wizard)**: Create account → verify email → enter legal/role/specialty → HIPAA acknowledgment → optional org join → suggested tools → first plan.
 - **Plan Creation (Planner)**: Answer wizard questions → LLM generates structured plan → edit/reorder steps → save → initiate tool setups.
-- **Tool Connection (Connections)**: Pick provider → OAuth/API key flow → store secret securely → show tier/limits → test connection.
+- **Tool Connection (Connections)**: Pick provider → OAuth/API key flow (minimize navigation away from app with easy-to-follow links, screenshots, minimal time outside) → store secret securely → show tier/limits and estimated monthly charges → test connection.
 - **Workflow Activation (Workflows)**: Choose plan → parameterize → connect data sources → dry-run → activate → monitor runs.
 - **Community Share/Import**: Publish with tags/privacy → others browse/like/rate → import copy to My Plans.
 - **File/KB Management**: Upload docs → de-identify (review) → chunk/embed → private vector store → use in assistant/workflows.
@@ -59,7 +59,7 @@ This document outlines the product specification for athen-ai, including the MVP
 - **Providers (MVP)**: OpenAI, Google (Gemini), Anthropic; stretch: Azure OpenAI, Zapier, Drive, S3; EHR sandboxes (Epic/Cerner) post-MVP.
 - **Auth**: OAuth where possible; secure API key vault otherwise.
 - **Secrets**: encrypted at rest; scoped per user/org; rotation supported.
-- **Acceptance**: “Test connection” validates minimal scope and lists available features/limits.
+- **Acceptance**: "Test connection" validates minimal scope and lists available features/limits and estimated monthly charges based on user's tier/usage pattern.
 
 #### File Management and Vectorization
 - **Upload**: local drag-drop; import from Drive/S3 (post-MVP for import).
@@ -130,7 +130,7 @@ This document outlines the product specification for athen-ai, including the MVP
 - **Patient instructions**: Output at 6th–8th grade reading level; multilingual support; contraindication warnings surfaced; explicit clinician review required.
 - **Prior authorization packet**: Checklist-driven data capture; attachment/packet builder; exportable packet (PDF); track turnaround time, approvals, appeals, and denials avoided.
 - **Uploads & de-identification**: PHI flag mandatory; de-ID preview must be approved by clinician before sharing; provenance ledger updated on approval; storage remains within HIPAA boundary.
-- **Connections**: OAuth/BYO keys; scopes disclosed and logged; successful "Test connection" flow required; no payment information stored by the platform.
+- **Connections**: OAuth/BYO keys with streamlined UX (minimal navigation away, clear instructions with screenshots); scopes disclosed and logged; successful "Test connection" flow required showing tier/limits and estimated monthly charges; no payment information stored by the platform.
 - **EHR integration path**: Phase 0 clipboard/smart phrases; Phase 1 limited FHIR read (demographics/meds/problems) with audit entries for each access.
 
 ### High-level Data Model (illustrative)

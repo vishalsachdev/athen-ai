@@ -28,6 +28,11 @@ build/
 .next/
 coverage/
 
+# Prisma
+packages/backend/prisma/migrations/
+*.db
+*.db-journal
+
 # Editor
 .vscode/
 .idea/
