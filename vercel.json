@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm install && npm run build -w @athen-ai/frontend",
+  "outputDirectory": "packages/frontend/dist",
+  "devCommand": "npm run dev -w @athen-ai/frontend",
+  "installCommand": "npm install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
