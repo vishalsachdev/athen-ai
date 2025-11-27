@@ -1,4 +1,3 @@
-import React from 'react';
 import { ClinicalSearch } from './components/ClinicalSearch';
 
 function App() {

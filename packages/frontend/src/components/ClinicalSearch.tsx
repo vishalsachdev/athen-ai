@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 // Mock data for the "Promptions" pattern - Dynamic UI generation
 const MOCK_PROMPTIONS = {
