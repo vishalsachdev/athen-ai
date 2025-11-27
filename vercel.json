@@ -1,0 +1,5 @@
+{
+  "buildCommand": "npm run build --workspace=@athen-ai/frontend",
+  "outputDirectory": "packages/frontend/dist",
+  "installCommand": "npm install"
+}
