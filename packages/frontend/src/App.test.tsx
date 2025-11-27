@@ -5,13 +5,13 @@ import { describe, it, expect } from 'vitest';
 describe('App', () => {
   it('renders the app title', () => {
     render(<App />);
-    expect(screen.getByText('Athen Clinical Intelligence')).toBeInTheDocument();
+    expect(screen.getByText('AI Workflow Assistant')).toBeInTheDocument();
   });
 
   it('renders the subtitle', () => {
     render(<App />);
     expect(
-      screen.getByText('Context-aware decision support with dynamic prompting')
+      screen.getByText('Describe your clinical need to find the perfect AI solution')
     ).toBeInTheDocument();
   });
 });
