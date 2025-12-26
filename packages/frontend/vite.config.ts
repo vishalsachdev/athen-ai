@@ -13,6 +13,11 @@ export default defineConfig({
     port: 5173,
     host: '0.0.0.0', // Allow access from other devices on network
     proxy: {
+      '/api/chat': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/chat/, '/api/v1/chat'),
+      },
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,

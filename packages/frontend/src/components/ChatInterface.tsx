@@ -47,7 +47,7 @@ export function ChatInterface() {
     setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
 
     try {
-      const response = await fetch('/api/v1/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
