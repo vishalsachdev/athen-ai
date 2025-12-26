@@ -108,6 +108,49 @@ Met with client (Orr) to confirm MVP direction. Original Athena repo was too com
   ```
 - **Header:** Changed from "Athen AI" to "Athena"
 
+#### 9. UI Refinements
+- **Chat window height:** Increased from `h-[500px]` to `h-[600px]` for more conversation space
+- **Header spacing:** Reduced top padding from `py-12` to `pt-4 pb-12` in `App.tsx` to minimize dead space
+- **SolutionSearch header:** Reduced spacing (`space-y-1`, `text-2xl`, `text-sm`) and container padding (`px-6 pt-3 pb-6`)
+- **Auto-scroll fix:** Chat was auto-scrolling on page load even with no messages. Fixed by adding condition `if (messages.length > 0)` before scroll in `ChatInterface.tsx`
+
+#### 10. Local Network Access Configuration
+- **Purpose:** Allow testing from other devices on the same WiFi network
+- **Frontend (vite.config.ts):** Added `host: '0.0.0.0'` to dev server config
+- **Backend (index.ts):**
+  - Added `'http://192.168.68.67:5173'` to CORS origins
+  - Changed `app.listen()` to bind to `'0.0.0.0'` instead of localhost
+  - Fixed TypeScript error by using `Number(process.env.PORT)` for port casting
+
+#### 11. GitHub Push and Vercel Deployment
+- **Branch:** `ui` branch for frontend changes
+- **GitHub auth fix:** Used `gh auth setup-git` to resolve credential issues after being added as collaborator
+- **Vercel build error:** Initial "No Output Directory named 'public'" error
+  - **Fix:** Changed `vercel.json` buildCommand from `npm run build --workspace=@athen-ai/frontend` to `cd packages/frontend && npm run build`
+- **Frontend deployed successfully** to Vercel from GitHub auto-deployment
+
+#### 12. Vercel Serverless Function for Chat API
+- **Problem:** Vercel only deploys static frontend; backend Express server doesn't run on Vercel
+- **Solution:** Convert chat endpoint to a Vercel serverless function
+- **Files created:**
+  - `api/chat.ts` - Serverless function with:
+    - Full tools database embedded
+    - System prompt for Claude
+    - SSE streaming response
+    - CORS headers
+    - Input validation
+  - Updated `vercel.json` with `functions` config and `rewrites` for API routing
+  - Added `@anthropic-ai/foundry-sdk` and `@vercel/node` to root `package.json`
+- **Frontend update:** Changed API endpoint from `/api/v1/chat` to `/api/chat`
+- **Vite proxy update:** Added rewrite rule to map `/api/chat` to `/api/v1/chat` for local development
+- **Environment variables for Vercel:**
+  ```
+  ANTHROPIC_FOUNDRY_API_KEY=your-api-key
+  ANTHROPIC_FOUNDRY_RESOURCE=vishal-sachdev-claude-resource
+  ANTHROPIC_MODEL=claude-opus-4-5
+  ```
+- **Conversation continuity:** Works for multi-turn conversations because full message history is sent with each request (stored in frontend state)
+
 ---
 
 ## Reference: Meeting Notes (Nov 24, 2025)
