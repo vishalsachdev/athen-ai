@@ -1,0 +1,119 @@
+# Athen AI - Development Log
+
+A running history of decisions, discussions, and changes made to the project.
+
+---
+
+## December 26, 2024
+
+### Context
+Met with client (Orr) to confirm MVP direction. Original Athena repo was too complex - agreed to start simple with the `athen-ai` repo and build up.
+
+### MVP Direction Confirmed
+- **What we're building:** A curated search/discovery platform for healthcare AI tools
+- **Target users:** Small clinics, private practices (plastic surgery, dermatology, orthopedics)
+- **Core value:** Help physicians find the right AI tools + provide step-by-step setup guides
+- **Later phases:** Add HIPAA-compliant data middleman layer, cross-practice data sharing, workflow marketplace
+
+### Changes Made
+
+#### 1. Created Real Tools Database
+- **File:** `src/data/tools.ts`
+- Added 15 curated healthcare AI tools across 6 categories:
+  - Scribes: Freed AI, Scribeberry, Doximity Scribe
+  - Intake: IntakeQ, Jotform, Infermedica
+  - Chatbots: Kommunicate, BastionGPT
+  - Scheduling: NexHealth, Emitrr
+  - Billing: Medical Coding AI
+  - Specialty: TouchMD, Aesthetix CRM (plastic surgery), Miiskin, FotoFinder (dermatology)
+- Each tool includes: name, category, description, website, HIPAA status, pricing, key features, search keywords
+
+#### 2. Replaced Mock Search with Real Data
+- **File:** `src/components/SolutionSearch.tsx`
+- Removed fake "OCR-Scanner-Pro" type responses
+- Now searches actual tool database
+- Added category filter sidebar
+- Added HIPAA-only filter toggle
+- Shows tool cards with real info
+
+#### 3. Added Tool Card Component
+- **File:** `src/components/ToolCard.tsx`
+- Displays: tool name, category badge, HIPAA badge, description, key features, pricing
+- Links to tool guide page
+
+#### 4. Added Routing
+- **Files:** `src/main.tsx`, `src/App.tsx`
+- Added React Router (already installed)
+- Routes: `/` (search), `/tools/:toolId` (guide page)
+
+#### 5. Created Tool Guide Pages
+- **File:** `src/pages/ToolGuide.tsx`
+- Shows tool details + setup guide (if available)
+- Falls back to "Coming Soon" placeholder for tools without guides
+
+#### 6. Wrote 3 Setup Guides
+- **File:** `src/data/guides.ts`
+- Doximity Scribe (6 steps, 5-10 min setup) - FREE tool
+- Freed AI (6 steps, 10-15 min setup) - Most popular scribe
+- IntakeQ (7 steps, 30-45 min setup) - Patient intake forms
+- Each guide includes: overview, prerequisites, step-by-step instructions, tips
+
+### Decisions Made
+- **Tool links:** Go to internal guide pages (not external websites directly) - allows us to add value with setup instructions
+- **No markdown in guides:** Removed `**bold**` syntax since React doesn't render it - using plain text instead
+- **No backend needed yet:** All data is static in TypeScript files for MVP
+
+#### 7. Added Guided Search Wizard
+- **Problem:** Users who don't know exactly what tool they need can't effectively use keyword search
+- **Solution:** "Help me find the right tool" wizard - a 3-step modal that asks about pain points, specialty, and preferences
+- **Files:**
+  - `src/components/GuidedSearch.tsx` - Modal wizard component with 4 steps (pain point, specialty, preferences, results)
+  - `src/data/tools.ts` - Added new fields to support filtering:
+    - `painPoints[]` - what problems the tool solves (documentation, patient-questions, scheduling, intake, billing)
+    - `setupDifficulty` - easy/medium/hard
+    - `setupTime` - estimated setup time
+    - `pricingTier` - free/low/medium/enterprise
+    - `specialties[]` - which specialties the tool is best for
+  - `src/components/SolutionSearch.tsx` - Added wizard trigger button
+- **How it works:**
+  1. User clicks "Not sure what you need? Let us help you find the right tool"
+  2. Step 1: Select biggest pain point (documentation, patient questions, scheduling, intake, billing)
+  3. Step 2: Select specialty (plastic surgery, dermatology, orthopedics, general)
+  4. Step 3: Set preferences (budget, easy setup only)
+  5. Results: Shows top 3 recommended tools with "why it fits" explanation
+- **UX:** Modal with backdrop blur, progress indicator, back navigation, smooth transitions
+
+#### 8. Replaced Search + Wizard with Conversational Chat Interface
+- **Problem:** Having both keyword search AND a wizard felt redundant. Users wanted a more natural way to describe their problems.
+- **Solution:** Conversational AI chat interface powered by Claude via Microsoft Foundry
+- **Architecture:**
+  - Frontend: Custom chat UI with Tailwind (streaming support, message bubbles)
+  - Backend: Express API endpoint that streams responses via SSE
+  - LLM: Claude Opus 4.5 via Microsoft Azure AI Foundry with custom system prompt
+- **Backend files created:**
+  - `packages/backend/src/services/claudeAI.ts` - Anthropic SDK client with Foundry config + streaming
+  - `packages/backend/src/data/tools.ts` - Tools database for system prompt
+  - `packages/backend/src/data/systemPrompt.ts` - AI personality and instructions
+  - `packages/backend/src/routes/chat.ts` - POST /api/v1/chat endpoint (SSE streaming)
+- **Frontend files:**
+  - `packages/frontend/src/components/ChatInterface.tsx` - Chat UI with streaming
+  - `packages/frontend/src/components/SolutionSearch.tsx` - Updated to show chat + Browse All Tools (always visible)
+  - Deleted `GuidedSearch.tsx` (replaced by chat)
+- **Layout:** Chat at top, "Browse All Tools" section always visible below (no dropdown toggle)
+- **Environment variables needed:**
+  ```
+  ANTHROPIC_FOUNDRY_API_KEY=your-foundry-api-key
+  ANTHROPIC_FOUNDRY_RESOURCE=vishal-sachdev-claude-resource
+  ANTHROPIC_MODEL=claude-opus-4-5
+  ```
+- **Header:** Changed from "Athen AI" to "Athena"
+
+---
+
+## Reference: Meeting Notes (Nov 24, 2025)
+
+From initial strategy call with Anjali:
+- Focus on subspecialties: plastic surgery, dermatology, orthopedic surgery
+- Common workflow requests: AI intake forms, custom chatbots, smart scheduling
+- Long-term vision: Data sharing between practices, template marketplace
+- MVP approach: Start with search + guides only, no data processing/BAAs initially
