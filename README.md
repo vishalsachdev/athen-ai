@@ -2,7 +2,7 @@
 
 A curated search and discovery platform for healthcare AI tools. Helps small clinics and private practices find the right AI tools for their workflows, with step-by-step setup guides.
 
-**Live Demo:** [athen-ai.vercel.app](https://athen-ai.vercel.app)
+**Live Demo:** [athen-ai-orcin.vercel.app](https://athen-ai-orcin.vercel.app/)
 
 ## Features
 
