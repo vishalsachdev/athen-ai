@@ -1,5 +1,5 @@
 import AnthropicFoundry from '@anthropic-ai/foundry-sdk';
-import { getSystemPrompt } from '../data/systemPrompt';
+import { getSystemPrompt, SerializedToolbox } from '../data/systemPrompt';
 
 // Microsoft Foundry configuration for Claude
 const apiKey = process.env.ANTHROPIC_FOUNDRY_API_KEY || '';
@@ -24,9 +24,9 @@ function getClient(): AnthropicFoundry {
 }
 
 // Get chat completion using Foundry SDK
-export async function getChatCompletion(messages: ChatMessage[]): Promise<string> {
+export async function getChatCompletion(messages: ChatMessage[], toolbox?: SerializedToolbox): Promise<string> {
   const client = getClient();
-  const systemPrompt = getSystemPrompt();
+  const systemPrompt = getSystemPrompt(toolbox);
 
   console.log('Calling Claude via Foundry SDK');
   console.log('Resource:', resource);
@@ -34,7 +34,7 @@ export async function getChatCompletion(messages: ChatMessage[]): Promise<string
 
   const response = await client.messages.create({
     model,
-    max_tokens: 1500,
+    max_tokens: 4096,
     system: systemPrompt,
     messages: messages.map(m => ({
       role: m.role,
@@ -57,10 +57,11 @@ export async function getChatCompletion(messages: ChatMessage[]): Promise<string
 
 // Simulated streaming - yields chunks of the full response for a typewriter effect
 export async function* streamChatCompletion(
-  messages: ChatMessage[]
+  messages: ChatMessage[],
+  toolbox?: SerializedToolbox
 ): AsyncGenerator<string, void, unknown> {
   // Get the full response first (Foundry doesn't support true streaming)
-  const fullResponse = await getChatCompletion(messages);
+  const fullResponse = await getChatCompletion(messages, toolbox);
 
   // Simulate streaming by yielding chunks
   // Split into words to make it feel more natural

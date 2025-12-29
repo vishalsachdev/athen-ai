@@ -153,6 +153,63 @@ Met with client (Orr) to confirm MVP direction. Original Athena repo was too com
 
 ---
 
+## December 29, 2024
+
+### AI Toolbox Feature & Setup Guides Expansion
+
+#### 1. Added AI Toolbox / Workflow Builder
+- **Concept:** Users can build their ideal clinical workflow by adding tools to different stages
+- **Workflow stages:** Scheduling → Intake → Documentation → Assistance → Billing
+- **Files:**
+  - `packages/frontend/src/context/WorkflowContext.tsx` - State management with localStorage persistence
+  - `packages/frontend/src/components/WorkflowPanel.tsx` - Slide-out panel showing workflow stages
+  - `packages/frontend/src/components/WorkflowStage.tsx` - Individual stage component
+  - `packages/frontend/src/components/ChatToolCard.tsx` - Tool cards rendered inline in chat messages
+- **Features:**
+  - Tools auto-map to appropriate workflow stages based on category
+  - Persists across page refreshes via localStorage
+  - Floating "AI Toolbox" button shows count of tools added
+  - "Add to Toolbox" button on tool cards (in chat and tool guide pages)
+
+#### 2. Chat Context Persistence
+- **File:** `packages/frontend/src/context/ChatContext.tsx`
+- Chat messages now persist when navigating between pages
+- Uses React Context to maintain conversation state
+
+#### 3. Toolbox Context for AI Assistant
+- When user has tools in their toolbox, the full setup guides are sent to the AI
+- AI can now provide contextual help with integration, setup questions, and workflow optimization
+- **Files updated:**
+  - `packages/backend/src/data/systemPrompt.ts` - Generates toolbox context section
+  - `packages/backend/src/services/claudeAI.ts` - Passes toolbox to system prompt
+  - `packages/backend/src/routes/chat.ts` - Accepts toolbox in request body
+  - `api/chat.ts` - Serverless function updated with same logic
+
+#### 4. Expanded Setup Guides (3 → 15 tools)
+- Previously only had guides for: Doximity Scribe, Freed AI, IntakeQ
+- **Now have comprehensive setup guides for all 15 tools:**
+  - Scribes: Freed AI, Scribeberry, Doximity Scribe
+  - Intake: IntakeQ, Jotform, Infermedica
+  - Chatbots: Kommunicate, BastionGPT
+  - Scheduling: NexHealth, Emitrr
+  - Billing: Medical Coding AI
+  - Specialty: TouchMD, Aesthetix CRM, Miiskin, FotoFinder
+- Each guide includes: overview, time estimate, prerequisites, step-by-step instructions, pro tips
+
+#### 5. Chat UI Improvements
+- **Markdown rendering:** Added `react-markdown` with `remark-gfm` plugin for proper formatting
+- **Custom renderers for:** headers, lists, paragraphs, links, tables, horizontal rules, bold text
+- **Tool cards in chat:** AI can recommend tools using `[[TOOL:tool-id]]` syntax, renders interactive cards
+- **Spacing improvements:** Better vertical breathing room between elements
+- **Response limit increased:** `max_tokens` bumped from 1500 to 4096 for longer responses
+
+#### 6. System Prompt Improvements
+- Added formatting rules for consistent output
+- Instructions for numbered lists, tables, spacing
+- Toolbox context injection when user has tools selected
+
+---
+
 ## Reference: Meeting Notes (Nov 24, 2025)
 
 From initial strategy call with Anjali:

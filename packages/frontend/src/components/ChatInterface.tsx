@@ -1,23 +1,24 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-}
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { ChatToolCard } from './ChatToolCard';
+import { useWorkflow } from '../context/WorkflowContext';
+import { useChat, Message } from '../context/ChatContext';
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, setMessages } = useChat();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { getSerializedToolbox } = useWorkflow();
 
-  // Auto-scroll to bottom when messages change (only if there are messages)
+  // Auto-scroll to bottom when messages change (only within the chat container)
   useEffect(() => {
-    if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0 && messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      container.scrollTop = container.scrollHeight;
     }
   }, [messages]);
 
@@ -47,6 +48,10 @@ export function ChatInterface() {
     setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
 
     try {
+      // Get the current toolbox state to send as context
+      const toolbox = getSerializedToolbox();
+      console.log('Sending toolbox to API:', toolbox);
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,6 +60,7 @@ export function ChatInterface() {
             role: m.role,
             content: m.content,
           })),
+          toolbox: toolbox.tools.length > 0 ? toolbox : undefined,
         }),
       });
 
@@ -117,40 +123,76 @@ export function ChatInterface() {
     }
   };
 
-  // Render markdown-like content with links
-  const renderContent = (content: string) => {
-    // Convert markdown links to React Router links for internal paths
-    // Pattern: [text](/tools/tool-id) -> Link component
-    const parts = content.split(/(\[.*?\]\(\/tools\/.*?\))/g);
+  // Render markdown content with tool cards
+  const renderContent = (content: string): ReactNode[] => {
+    // Split by tool card markers [[TOOL:tool-id]]
+    const toolCardPattern = /(\[\[TOOL:[a-z0-9-]+\]\])/g;
+    const segments = content.split(toolCardPattern);
 
-    return parts.map((part, i) => {
-      const linkMatch = part.match(/\[(.*?)\]\((\/tools\/.*?)\)/);
-      if (linkMatch) {
-        return (
-          <Link
-            key={i}
-            to={linkMatch[2]}
-            className="text-indigo-600 hover:text-indigo-700 underline"
-          >
-            {linkMatch[1]}
-          </Link>
-        );
+    return segments.map((segment, segmentIndex) => {
+      // Check if this segment is a tool card marker
+      const toolMatch = segment.match(/\[\[TOOL:([a-z0-9-]+)\]\]/);
+      if (toolMatch) {
+        return <ChatToolCard key={`tool-${segmentIndex}`} toolId={toolMatch[1]} />;
       }
-      // Handle bold text
-      const boldParts = part.split(/(\*\*.*?\*\*)/g);
-      return boldParts.map((boldPart, j) => {
-        if (boldPart.startsWith('**') && boldPart.endsWith('**')) {
-          return <strong key={`${i}-${j}`}>{boldPart.slice(2, -2)}</strong>;
-        }
-        return <span key={`${i}-${j}`}>{boldPart}</span>;
-      });
+
+      // Render markdown for text segments
+      return (
+        <ReactMarkdown
+          key={`md-${segmentIndex}`}
+          remarkPlugins={[remarkGfm]}
+          components={{
+            // Custom link renderer for internal /tools/ links
+            a: ({ href, children }) => {
+              if (href?.startsWith('/tools/')) {
+                return (
+                  <Link to={href} className="text-indigo-600 hover:text-indigo-700 underline">
+                    {children}
+                  </Link>
+                );
+              }
+              return (
+                <a href={href} className="text-indigo-600 hover:text-indigo-700 underline" target="_blank" rel="noopener noreferrer">
+                  {children}
+                </a>
+              );
+            },
+            // Style headers with more vertical space
+            h3: ({ children }) => <h3 className="text-base font-semibold text-slate-800 mt-6 mb-3">{children}</h3>,
+            h4: ({ children }) => <h4 className="text-sm font-semibold text-slate-700 mt-5 mb-2">{children}</h4>,
+            // Style lists with more breathing room
+            ul: ({ children }) => <ul className="list-disc list-inside space-y-2 my-4 pl-1">{children}</ul>,
+            ol: ({ children }) => <ol className="list-decimal list-inside space-y-2 my-4 pl-1">{children}</ol>,
+            li: ({ children }) => <li className="text-slate-700 leading-relaxed">{children}</li>,
+            // Style paragraphs with more spacing
+            p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
+            // Style strong/bold
+            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+            // Style horizontal rules with spacing
+            hr: () => <hr className="my-6 border-slate-200" />,
+            // Style tables
+            table: ({ children }) => (
+              <table className="w-full my-4 border-collapse border border-slate-200 rounded-lg overflow-hidden">
+                {children}
+              </table>
+            ),
+            thead: ({ children }) => <thead className="bg-slate-50">{children}</thead>,
+            tbody: ({ children }) => <tbody>{children}</tbody>,
+            tr: ({ children }) => <tr className="border-b border-slate-200 last:border-b-0">{children}</tr>,
+            th: ({ children }) => <th className="px-3 py-2 text-left text-sm font-semibold text-slate-700 border-r border-slate-200 last:border-r-0">{children}</th>,
+            td: ({ children }) => <td className="px-3 py-2 text-sm text-slate-600 border-r border-slate-200 last:border-r-0">{children}</td>,
+          }}
+        >
+          {segment}
+        </ReactMarkdown>
+      );
     });
   };
 
   return (
     <div className="flex flex-col h-[600px] bg-white border border-slate-200 rounded-xl overflow-hidden">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
             <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
@@ -186,32 +228,27 @@ export function ChatInterface() {
               key={message.id}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  message.role === 'user'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-100 text-slate-800'
-                }`}
-              >
-                {message.role === 'assistant' ? (
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              {message.role === 'assistant' ? (
+                <div className="max-w-xl">
+                  <div className="text-sm leading-relaxed text-slate-800">
                     {renderContent(message.content)}
                     {isLoading && message.content === '' && (
-                      <span className="inline-flex gap-1">
+                      <div className="bg-slate-100 rounded-2xl px-4 py-3 inline-flex gap-1">
                         <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                         <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                         <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </span>
+                      </div>
                     )}
                   </div>
-                ) : (
+                </div>
+              ) : (
+                <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-indigo-600 text-white">
                   <p className="text-sm">{message.content}</p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}

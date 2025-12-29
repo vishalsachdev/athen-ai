@@ -1,16 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { streamChatCompletion, ChatMessage } from '../services/claudeAI';
+import { SerializedToolbox } from '../data/systemPrompt';
 
 const router = Router();
 
 interface ChatRequest {
   messages: ChatMessage[];
+  toolbox?: SerializedToolbox;
 }
 
 // POST /api/v1/chat - Stream chat completion
 router.post('/', async (req: Request<{}, {}, ChatRequest>, res: Response) => {
   try {
-    const { messages } = req.body;
+    const { messages, toolbox } = req.body;
+
+    console.log('Received toolbox:', toolbox ? `${toolbox.tools.length} tools` : 'none');
 
     // Validate request
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -53,7 +57,7 @@ router.post('/', async (req: Request<{}, {}, ChatRequest>, res: Response) => {
 
     // Stream the response
     try {
-      for await (const chunk of streamChatCompletion(messages)) {
+      for await (const chunk of streamChatCompletion(messages, toolbox)) {
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
