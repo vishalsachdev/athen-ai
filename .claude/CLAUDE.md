@@ -68,3 +68,51 @@
 8. Auth + Onboarding (HIPAA acknowledgment)
 
 **Phase 2**: Workflow automation, EHR sandboxes (Epic first), org collaboration, usage-based billing
+
+---
+
+## Current Focus
+
+- [ ] Fix chat functionality (backend not deployed to Vercel)
+
+## Roadmap
+
+### Immediate (Before MVP Launch)
+- [ ] Fix chat functionality - Backend deployment to Vercel (Critical)
+- [ ] Standardize branding - Decide "Athena" vs "Athen AI"
+- [ ] Fix tool count display - Dynamic HIPAA count instead of hardcoded "28"
+
+### Short-term (Next Sprint)
+- [ ] Add setup guides for 10 missing tools (40% of catalog)
+- [ ] Add setup difficulty badges to tool cards
+- [ ] Improve chat placeholder text for better user guidance
+
+### Long-term (Future Enhancements)
+- [ ] Default HIPAA filter to ON for healthcare context
+- [ ] Add React error boundaries for robustness
+- [ ] Consider backend database for tool data when scaling beyond 50 tools
+- [ ] Accessibility improvements (ARIA live regions)
+
+### Completed
+- [x] Initial MVP development
+- [x] OpenAI GPT-5.2 integration (PR #8)
+- [x] Documentation structure organized (/docs with planning/, specs/, reports/, guides/)
+- [x] Clinician UX testing completed with detailed report
+
+## Backlog
+
+- EHR sandbox integrations (Epic first)
+- Workflow automation features
+- Organization collaboration features
+- Usage-based billing system
+
+## Session Log
+
+### 2024-12-30
+- Completed: Comprehensive clinician UX testing of deployed app
+- Completed: Created detailed testing report (`/docs/reports/2024-12-30-testing-report.md`)
+- Completed: Organized documentation into `/docs` structure
+- Completed: Fixed CHANGELOG.md year error (2025 -> 2024)
+- Completed: Created documentation standards and plan template
+- Found: 1 critical issue (chat non-functional), 3 priority issues, 3 nice-to-haves
+- Next: Fix chat functionality (backend deployment to Vercel)
