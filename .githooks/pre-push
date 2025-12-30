@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Pre-push hook to remind about CHANGELOG updates
+# This hook checks if you've updated CHANGELOG.md when pushing changes
+
+# Colors for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Get the branch being pushed to
+remote="$1"
+url="$2"
+
+# Get commits that are about to be pushed
+zero_commit="0000000000000000000000000000000000000000"
+
+while read local_ref local_sha remote_ref remote_sha
+do
+    if [ "$local_sha" = "$zero_commit" ]; then
+        # Branch deletion, skip
+        continue
+    fi
+
+    if [ "$remote_sha" = "$zero_commit" ]; then
+        # New branch, check all commits
+        range="$local_sha"
+    else
+        # Update to existing branch, check new commits
+        range="$remote_sha..$local_sha"
+    fi
+
+    # Get list of changed files in commits being pushed
+    changed_files=$(git diff --name-only "$range")
+
+    # Skip if no files changed (shouldn't happen, but just in case)
+    if [ -z "$changed_files" ]; then
+        continue
+    fi
+
+    # Check if CHANGELOG.md was updated
+    changelog_updated=$(echo "$changed_files" | grep -c "^CHANGELOG.md$")
+
+    # Check if any non-CHANGELOG files were changed
+    other_files=$(echo "$changed_files" | grep -v "^CHANGELOG.md$" | wc -l)
+
+    # If other files changed but CHANGELOG wasn't updated, warn
+    if [ "$other_files" -gt 0 ] && [ "$changelog_updated" -eq 0 ]; then
+        echo ""
+        echo -e "${YELLOW}⚠️  CHANGELOG Reminder${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "You're pushing changes but ${RED}CHANGELOG.md${NC} wasn't updated."
+        echo ""
+        echo "Changed files:"
+        echo "$changed_files" | sed 's/^/  - /'
+        echo ""
+        echo -e "${YELLOW}Should you update CHANGELOG.md?${NC}"
+        echo "  - Did you add/change features?"
+        echo "  - Did you make architectural decisions?"
+        echo "  - Did you fix important bugs?"
+        echo ""
+        read -p "Continue pushing anyway? [y/N] " -n 1 -r
+        echo ""
+
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${RED}Push cancelled.${NC}"
+            echo "Update CHANGELOG.md, commit, and try again."
+            exit 1
+        fi
+
+        echo -e "${GREEN}Proceeding with push...${NC}"
+    fi
+done
+
+exit 0

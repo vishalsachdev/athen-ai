@@ -4,6 +4,74 @@ A running history of decisions, discussions, and changes made to the project.
 
 ---
 
+## December 30, 2024
+
+### Context
+Switched AI backend from Anthropic Claude to OpenAI due to expired Anthropic API key. Conducted comprehensive UX testing of deployed application and organized project documentation.
+
+### Changes Made
+
+#### 1. AI Backend Migration
+- **Files:** `packages/backend/src/services/openaiAI.ts`, `api/chat.ts`
+- Migrated from Anthropic Claude (Azure AI Foundry) to OpenAI GPT-5.2
+- Using Vishal's OpenAI API key after Anthropic key expired
+- Updated environment variable from `ANTHROPIC_FOUNDRY_API_KEY` to `OPENAI_API_KEY`
+- Model changed from `claude-opus-4-5` to `gpt-5.2-chat-latest`
+- Maintained SSE streaming functionality
+
+#### 2. Documentation Structure Overhaul
+- **Created:** `/docs` directory with organized subdirectories
+- **Structure:**
+  - `docs/planning/` - Brainstorming and ideation (moved `idea-brainstorm.md` here)
+  - `docs/specs/` - Product specifications (moved `product-spec.md` here)
+  - `docs/reports/` - Testing reports and analysis
+  - `docs/guides/` - Development guides (empty, reserved for future)
+- **Added:** `docs/README.md` with documentation standards and naming conventions
+- **Added:** `docs/planning/TEMPLATE-plan.md` for future planning documents
+- **New requirement:** All plans/reports must include metadata section with:
+  - Creation timestamp
+  - Last commit reference
+  - How the plan was generated
+- **Added:** `TRASH-FILES.md` to track moved/deleted files
+- **Added:** `TRASH/` directory to `.gitignore`
+
+#### 3. Comprehensive UX Testing
+- **Created:** `docs/reports/2024-12-30-testing-report.md`
+- Tested deployed app at https://athen-ai-orcin.vercel.app/ as clinician user
+- Testing included:
+  - Chat interface functionality
+  - HIPAA compliance filter
+  - Category navigation
+  - Tool guide pages
+  - Responsive design (375px mobile, 1400px desktop)
+  - Console error monitoring
+- **Issues found:**
+  - **Critical:** Chat interface non-functional (backend not deployed to Vercel)
+  - **Priority:** Branding inconsistency ("Athena" vs "Athen AI")
+  - **Priority:** Tool count hardcoded as "28" instead of dynamic calculation (should be 14)
+  - **Priority:** 10 out of 25 tools missing setup guides
+  - **Nice-to-have:** 3 UX improvements identified
+
+#### 4. Roadmap Infrastructure
+- **Added to `.claude/CLAUDE.md`:**
+  - `## Current Focus` - Fix chat functionality (backend deployment)
+  - `## Roadmap` - Prioritized list of immediate, short-term, and long-term tasks
+  - `## Backlog` - Phase 2 features (EHR integration, workflows, billing)
+  - `## Session Log` - Track work completed each session
+
+### Decisions Made
+- **API Provider:** Switched to OpenAI due to Anthropic key expiration (temporary solution)
+- **Documentation Location:** Root files (`idea-brainstorm.md`, `product-spec.md`) moved to `/docs` for better organization
+- **Metadata Requirement:** All future plans must document creation context and commit state
+- **CHANGELOG Year Fix:** Corrected "Nov 24, 2025" → "Nov 24, 2024" (was future-dated by mistake)
+
+### Next Session Priorities
+1. **Fix chat backend deployment** - Core feature currently broken on production
+2. **Branding decision** - Standardize on "Athena" or "Athen AI" across all surfaces
+3. **Dynamic tool counting** - Replace hardcoded "28 HIPAA compliant" with calculated value
+
+---
+
 ## December 26, 2024
 
 ### Context
