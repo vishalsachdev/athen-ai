@@ -41,3 +41,5 @@ packages/backend/prisma/migrations/
 # Misc
 *.local
 .tmp/
+.vercel
+TRASH/

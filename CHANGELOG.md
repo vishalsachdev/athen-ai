@@ -210,7 +210,7 @@ Met with client (Orr) to confirm MVP direction. Original Athena repo was too com
 
 ---
 
-## Reference: Meeting Notes (Nov 24, 2025)
+## Reference: Meeting Notes (Nov 24, 2024)
 
 From initial strategy call with Anjali:
 - Focus on subspecialties: plastic surgery, dermatology, orthopedic surgery
