@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { streamChatCompletion, ChatMessage } from '../services/claudeAI';
+import { streamChatCompletion, ChatMessage } from '../services/openaiAI';
 import { SerializedToolbox } from '../data/systemPrompt';
 
 const router = Router();
@@ -92,12 +92,11 @@ router.post('/', async (req: Request<{}, {}, ChatRequest>, res: Response) => {
 
 // GET /api/v1/chat/health - Health check for chat service
 router.get('/health', (_req: Request, res: Response) => {
-  const hasCredentials = !!process.env.ANTHROPIC_FOUNDRY_API_KEY;
+  const hasCredentials = !!process.env.OPENAI_API_KEY;
 
   res.json({
     status: hasCredentials ? 'configured' : 'missing_credentials',
-    model: process.env.ANTHROPIC_MODEL || 'claude-opus-4-5',
-    resource: process.env.ANTHROPIC_FOUNDRY_RESOURCE || 'not_set',
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
   });
 });
 
