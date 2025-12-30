@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import AnthropicFoundry from '@anthropic-ai/foundry-sdk';
+import OpenAI from 'openai';
 
 // Types
 interface ChatMessage {
@@ -355,46 +355,34 @@ What specialty are you in? I can refine these recommendations."
 - Don't use horizontal rules (---) or markdown dividers - use blank lines instead${toolboxContext}`;
 }
 
-// Create Foundry client
-function getClient(): AnthropicFoundry {
-  const apiKey = process.env.ANTHROPIC_FOUNDRY_API_KEY;
-  const resource = process.env.ANTHROPIC_FOUNDRY_RESOURCE || 'vishal-sachdev-claude-resource';
+// Create OpenAI client
+function getClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    throw new Error('ANTHROPIC_FOUNDRY_API_KEY environment variable not set');
+    throw new Error('OPENAI_API_KEY environment variable not set');
   }
 
-  return new AnthropicFoundry({
-    apiKey,
-    resource,
-  });
+  return new OpenAI({ apiKey });
 }
 
 // Get chat completion
 async function getChatCompletion(messages: ChatMessage[], toolbox?: SerializedToolbox): Promise<string> {
   const client = getClient();
-  const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-5';
+  const model = process.env.OPENAI_MODEL || 'gpt-5.2-chat-latest';
   const systemPrompt = getSystemPrompt(toolbox);
 
-  const response = await client.messages.create({
+  const response = await client.responses.create({
     model,
-    max_tokens: 1500,
-    system: systemPrompt,
-    messages: messages.map((m) => ({
+    instructions: systemPrompt,
+    input: messages.map((m) => ({
       role: m.role,
       content: m.content,
     })),
+    max_output_tokens: 1500,
   });
 
-  // Extract text from response
-  if (response.content && Array.isArray(response.content)) {
-    const textBlock = response.content.find((block) => block.type === 'text');
-    if (textBlock && textBlock.type === 'text') {
-      return textBlock.text;
-    }
-  }
-
-  return '';
+  return response.output_text || '';
 }
 
 // Vercel serverless function handler
@@ -458,7 +446,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Get the full response (Foundry doesn't support true streaming)
+    // Get the full response (typewriter-style streaming)
     const fullResponse = await getChatCompletion(messages, toolbox);
 
     // Simulate streaming by sending chunks

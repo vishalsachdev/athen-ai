@@ -18,8 +18,8 @@
     "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
   },
   "dependencies": {
-    "@anthropic-ai/foundry-sdk": "^0.2.0",
-    "@vercel/node": "^3.0.0"
+    "@vercel/node": "^3.0.0",
+    "openai": "^4.26.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.21.0",

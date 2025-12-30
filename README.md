@@ -7,7 +7,7 @@ A curated search and discovery platform for healthcare AI tools. Helps small cli
 ## Features
 
 ### AI Chat Assistant
-- Conversational interface powered by Claude (via Microsoft Azure AI Foundry)
+- Conversational interface powered by OpenAI
 - Describe your workflow challenges and get personalized tool recommendations
 - Interactive tool cards rendered inline in chat responses
 
@@ -56,9 +56,8 @@ npm install
 Create `packages/backend/.env` with:
 
 ```env
-ANTHROPIC_FOUNDRY_API_KEY=your-foundry-api-key
-ANTHROPIC_FOUNDRY_RESOURCE=your-resource-name
-ANTHROPIC_MODEL=claude-opus-4-5
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_MODEL=gpt-5.2-chat-latest
 PORT=3001
 ```
 
@@ -100,7 +99,7 @@ npm run build
 ### Backend
 - Node.js 20 LTS
 - Express.js with TypeScript
-- Claude API via Microsoft Azure AI Foundry SDK
+- OpenAI API (Responses API)
 - Server-Sent Events (SSE) for streaming responses
 
 ### Deployment
@@ -111,8 +110,8 @@ npm run build
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   React SPA     │────▶│  Vercel API      │────▶│  Claude API     │
-│   (Frontend)    │     │  (Serverless)    │     │  (Foundry)      │
+│   React SPA     │────▶│  Vercel API      │────▶│  OpenAI API     │
+│   (Frontend)    │     │  (Serverless)    │     │  (OpenAI)       │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
         │
         ▼
