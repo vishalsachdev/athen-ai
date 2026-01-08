@@ -71,7 +71,10 @@ function ToolHeader({ tool }: { tool: NonNullable<ReturnType<typeof getToolById>
             {tool.category === 'specialty' ? tool.subcategory : tool.category}
           </span>
           {tool.hipaaCompliant && (
-            <span className="text-sm font-medium text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1">
+            <span 
+              className="text-sm font-medium text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1 cursor-help" 
+              title="HIPAA Compliant: This tool meets HIPAA requirements for patient data protection. Always verify with vendor for your specific use case."
+            >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
@@ -272,17 +275,25 @@ function PrerequisitesStep({
           </div>
         </div>
 
-        <button
-          onClick={onComplete}
-          disabled={!allChecked}
-          className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-            allChecked
-              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          I'm Ready to Start Setup
-        </button>
+        <div>
+          <button
+            onClick={onComplete}
+            disabled={!allChecked}
+            className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+              allChecked
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            }`}
+            title={!allChecked ? 'Check all boxes above to continue' : ''}
+          >
+            I'm Ready to Start Setup
+          </button>
+          {!allChecked && (
+            <p className="text-xs text-slate-500 mt-2 text-center">
+              Check all boxes above to continue
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
