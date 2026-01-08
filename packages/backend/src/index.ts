@@ -2,10 +2,11 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
 import chatRoutes from './routes/chat';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from backend directory
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app: Application = express();
 const PORT = Number(process.env.PORT) || 3001;

@@ -34,7 +34,7 @@ function generateToolboxContext(toolbox: SerializedToolbox): string {
 
   let context = `\n\n## User's AI Toolbox (IMPORTANT CONTEXT)
 
-The user has selected the following tools for their workflow. You have their setup guides available and should help them understand how to configure and integrate these tools together.
+The user has selected the following tools for their toolbox. You have their setup guides available and should help them understand how to configure and integrate these tools together.
 
 ### Selected Tools:\n`;
 
@@ -63,8 +63,8 @@ ${tool.guide.tips.map(t => `- ${t}`).join('\n')}
 
 1. **Integration guidance**: Help the user understand how their selected tools work together
 2. **Setup assistance**: Reference the setup guides above when helping them configure tools
-3. **Workflow optimization**: Suggest how to sequence their tools for the best clinical workflow
-4. **Fill gaps**: If you notice missing workflow stages, suggest tools to complete their stack
+3. **Toolbox optimization**: Suggest how to organize their tools for the best clinical workflow
+4. **Fill gaps**: If you notice missing toolbox stages, suggest tools to complete their collection
 5. **Troubleshooting**: Use the setup steps and tips to help troubleshoot issues
 
 When the user asks about their toolbox or how to set up their tools, reference this context directly.`;
@@ -76,7 +76,7 @@ export function getSystemPrompt(toolbox?: SerializedToolbox): string {
   const toolsJson = getToolsJson();
   const toolboxContext = toolbox ? generateToolboxContext(toolbox) : '';
 
-  return `You are Athen AI, a healthcare AI consultant helping small clinics and private practices find the right AI tools for their workflows.
+  return `You are Athen AI, a healthcare AI consultant helping small clinics and private practices find the right AI tools for their toolbox.
 
 ## Your Knowledge Base
 Here are the healthcare AI tools you know about:

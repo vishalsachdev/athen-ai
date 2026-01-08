@@ -1,14 +1,11 @@
 import { useState } from 'react';
+import { SplitLayout } from './SplitLayout';
 import { tools, categories } from '../data/tools';
 import { ToolCard } from './ToolCard';
-import { ChatInterface } from './ChatInterface';
-import { WorkflowPanel } from './WorkflowPanel';
-import { useWorkflow } from '../context/WorkflowContext';
 
 export const SolutionSearch = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [hipaaOnly, setHipaaOnly] = useState(false);
-  const { isOpen: isWorkflowOpen, togglePanel, filledStagesCount } = useWorkflow();
 
   // Filter tools based on selected category and HIPAA filter
   const filteredTools = tools.filter(t => {
@@ -18,40 +15,18 @@ export const SolutionSearch = () => {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-6 pt-3 pb-6 space-y-4 font-sans">
+    <div className="max-w-[1800px] mx-auto px-6 pt-4 pb-6 font-sans">
       {/* Header */}
-      <div className="text-center space-y-1">
+      <div className="text-center space-y-1 mb-4">
         <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Athena</h1>
-        <p className="text-slate-500 text-sm">Your AI consultant for healthcare workflow tools</p>
+        <p className="text-slate-500 text-sm">Your AI consultant for healthcare tools</p>
       </div>
 
-      {/* Chat Interface + Workflow Panel */}
-      <div className="flex gap-4">
-        <div className="flex-1 min-w-0 relative">
-          <ChatInterface />
-          {/* Toggle button on right edge when panel is closed */}
-          {!isWorkflowOpen && (
-            <button
-              onClick={togglePanel}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full shadow-lg transition-all hover:scale-105"
-              title="Open AI Toolbox"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              {filledStagesCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                  {filledStagesCount}
-                </span>
-              )}
-            </button>
-          )}
-        </div>
-        <WorkflowPanel />
-      </div>
+      {/* Split Layout: Chat (left) + Tabs (right) */}
+      <SplitLayout />
 
       {/* Browse Tools Section */}
-      <div className="pt-8 border-t border-slate-200">
+      <div className="pt-8 border-t border-slate-200 mt-8">
         <h2 className="text-xl font-semibold text-slate-800 mb-6">Browse All Tools</h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

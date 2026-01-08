@@ -1,25 +1,26 @@
-import { Link } from 'react-router-dom';
 import { Tool } from '../data/tools';
-import { WorkflowStageId, useWorkflow } from '../context/WorkflowContext';
+import { ToolboxStageId, useToolbox } from '../context/ToolboxContext';
+import { useTabs } from '../context/TabContext';
 
-interface WorkflowStageProps {
-  id: WorkflowStageId;
+interface ToolboxStageProps {
+  id: ToolboxStageId;
   label: string;
   icon: string;
   tool: Tool | null;
   isLast?: boolean;
 }
 
-export function WorkflowStage({ id, label, icon, tool, isLast = false }: WorkflowStageProps) {
-  const { removeTool } = useWorkflow();
+export function ToolboxStage({ id, label, icon, tool, isLast = false }: ToolboxStageProps) {
+  const { removeTool } = useToolbox();
+  const { openToolTab } = useTabs();
 
   return (
     <div className="relative">
       {/* Stage card */}
       {tool ? (
-        <Link
-          to={`/tools/${tool.id}`}
-          className="block p-3 rounded-lg border bg-white border-indigo-200 hover:border-indigo-400 hover:shadow-sm transition-all group"
+        <button
+          onClick={() => openToolTab(tool.id, tool.name)}
+          className="w-full text-left p-3 rounded-lg border bg-white border-indigo-200 hover:border-indigo-400 hover:shadow-sm transition-all group"
         >
           {/* Header */}
           <div className="flex items-center gap-2 mb-2">
@@ -54,7 +55,7 @@ export function WorkflowStage({ id, label, icon, tool, isLast = false }: Workflo
               </svg>
             </button>
           </div>
-        </Link>
+        </button>
       ) : (
         <div className="p-3 rounded-lg border bg-slate-50 border-slate-200 border-dashed">
           {/* Header */}

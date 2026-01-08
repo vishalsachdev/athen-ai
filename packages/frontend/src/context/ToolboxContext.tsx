@@ -2,8 +2,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { Tool, getToolById } from '../data/tools';
 import { getGuideByToolId } from '../data/guides';
 
-// Workflow stages in clinical order
-export const WORKFLOW_STAGES = [
+// Toolbox stages in clinical order
+export const TOOLBOX_STAGES = [
   { id: 'scheduling', label: 'Scheduling/Communication', icon: '📅', categories: ['scheduling'] },
   { id: 'intake', label: 'Intake', icon: '📋', categories: ['intake'] },
   { id: 'documentation', label: 'Documentation', icon: '📝', categories: ['scribe'] },
@@ -11,9 +11,9 @@ export const WORKFLOW_STAGES = [
   { id: 'billing', label: 'Billing', icon: '💰', categories: ['billing'] },
 ] as const;
 
-export type WorkflowStageId = typeof WORKFLOW_STAGES[number]['id'];
+export type ToolboxStageId = typeof TOOLBOX_STAGES[number]['id'];
 
-export interface WorkflowState {
+export interface ToolboxState {
   scheduling: Tool | null;
   intake: Tool | null;
   documentation: Tool | null;
@@ -26,7 +26,7 @@ export interface ToolboxItem {
   id: string;
   name: string;
   category: string;
-  stage: WorkflowStageId;
+  stage: ToolboxStageId;
   guide?: {
     overview: string;
     timeEstimate: string;
@@ -47,27 +47,23 @@ export interface SerializedToolbox {
   };
 }
 
-interface WorkflowContextType {
-  workflow: WorkflowState;
-  isOpen: boolean;
+interface ToolboxContextType {
+  toolbox: ToolboxState;
   addTool: (tool: Tool) => void;
-  removeTool: (stageId: WorkflowStageId) => void;
-  clearWorkflow: () => void;
-  openPanel: () => void;
-  closePanel: () => void;
-  togglePanel: () => void;
-  getStageForTool: (tool: Tool) => WorkflowStageId | null;
-  isToolInWorkflow: (toolId: string) => boolean;
+  removeTool: (stageId: ToolboxStageId) => void;
+  clearToolbox: () => void;
+  getStageForTool: (tool: Tool) => ToolboxStageId | null;
+  isToolInToolbox: (toolId: string) => boolean;
   filledStagesCount: number;
   getSerializedToolbox: () => SerializedToolbox;
 }
 
-const WorkflowContext = createContext<WorkflowContextType | null>(null);
+const ToolboxContext = createContext<ToolboxContextType | null>(null);
 
-const STORAGE_KEY = 'athen-workflow';
+const STORAGE_KEY = 'athen-toolbox';
 
-// Map tool category to workflow stage
-export function getStageForToolCategory(category: Tool['category']): WorkflowStageId | null {
+// Map tool category to toolbox stage
+export function getStageForToolCategory(category: Tool['category']): ToolboxStageId | null {
   switch (category) {
     case 'scheduling':
       return 'scheduling';
@@ -87,9 +83,34 @@ export function getStageForToolCategory(category: Tool['category']): WorkflowSta
   }
 }
 
-function loadWorkflowFromStorage(): WorkflowState {
+function loadToolboxFromStorage(): ToolboxState {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    // Try new key first
+    let saved = localStorage.getItem(STORAGE_KEY);
+    
+    // If not found, try migrating from old 'athen-workflow' key
+    if (!saved) {
+      const oldSaved = localStorage.getItem('athen-workflow');
+      if (oldSaved) {
+        try {
+          const oldParsed = JSON.parse(oldSaved) as Record<string, string | null>;
+          // Migrate old workflow data to new toolbox format
+          const migrated = {
+            scheduling: oldParsed.scheduling || null,
+            intake: oldParsed.intake || null,
+            documentation: oldParsed.documentation || null,
+            communication: oldParsed.communication || null,
+            billing: oldParsed.billing || null,
+          };
+          // Save to new key
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          saved = JSON.stringify(migrated);
+        } catch (e) {
+          console.error('Failed to migrate old workflow data:', e);
+        }
+      }
+    }
+    
     if (saved) {
       const parsed = JSON.parse(saved) as Record<string, string | null>;
       return {
@@ -101,7 +122,7 @@ function loadWorkflowFromStorage(): WorkflowState {
       };
     }
   } catch (e) {
-    console.error('Failed to load workflow from storage:', e);
+    console.error('Failed to load toolbox from storage:', e);
   }
   return {
     scheduling: null,
@@ -112,39 +133,30 @@ function loadWorkflowFromStorage(): WorkflowState {
   };
 }
 
-function saveWorkflowToStorage(workflow: WorkflowState): void {
+function saveToolboxToStorage(toolbox: ToolboxState): void {
   try {
     const toSave = {
-      scheduling: workflow.scheduling?.id || null,
-      intake: workflow.intake?.id || null,
-      documentation: workflow.documentation?.id || null,
-      communication: workflow.communication?.id || null,
-      billing: workflow.billing?.id || null,
+      scheduling: toolbox.scheduling?.id || null,
+      intake: toolbox.intake?.id || null,
+      documentation: toolbox.documentation?.id || null,
+      communication: toolbox.communication?.id || null,
+      billing: toolbox.billing?.id || null,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch (e) {
-    console.error('Failed to save workflow to storage:', e);
+    console.error('Failed to save toolbox to storage:', e);
   }
 }
 
-export function WorkflowProvider({ children }: { children: ReactNode }) {
-  const [workflow, setWorkflow] = useState<WorkflowState>(loadWorkflowFromStorage);
-  const [isOpen, setIsOpen] = useState(false);
+export function ToolboxProvider({ children }: { children: ReactNode }) {
+  const [toolbox, setToolbox] = useState<ToolboxState>(loadToolboxFromStorage);
 
-  // Check if any tools are in workflow on mount to auto-open panel
+  // Save to localStorage whenever toolbox changes
   useEffect(() => {
-    const hasTools = Object.values(workflow).some(tool => tool !== null);
-    if (hasTools) {
-      setIsOpen(true);
-    }
-  }, []);
+    saveToolboxToStorage(toolbox);
+  }, [toolbox]);
 
-  // Save to localStorage whenever workflow changes
-  useEffect(() => {
-    saveWorkflowToStorage(workflow);
-  }, [workflow]);
-
-  const getStageForTool = (tool: Tool): WorkflowStageId | null => {
+  const getStageForTool = (tool: Tool): ToolboxStageId | null => {
     return getStageForToolCategory(tool.category);
   };
 
@@ -152,22 +164,21 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
     const stage = getStageForTool(tool);
     if (!stage) return;
 
-    setWorkflow(prev => ({
+    setToolbox(prev => ({
       ...prev,
       [stage]: tool,
     }));
-    setIsOpen(true);
   };
 
-  const removeTool = (stageId: WorkflowStageId) => {
-    setWorkflow(prev => ({
+  const removeTool = (stageId: ToolboxStageId) => {
+    setToolbox(prev => ({
       ...prev,
       [stageId]: null,
     }));
   };
 
-  const clearWorkflow = () => {
-    setWorkflow({
+  const clearToolbox = () => {
+    setToolbox({
       scheduling: null,
       intake: null,
       documentation: null,
@@ -176,15 +187,11 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const openPanel = () => setIsOpen(true);
-  const closePanel = () => setIsOpen(false);
-  const togglePanel = () => setIsOpen(prev => !prev);
-
-  const isToolInWorkflow = (toolId: string): boolean => {
-    return Object.values(workflow).some(tool => tool?.id === toolId);
+  const isToolInToolbox = (toolId: string): boolean => {
+    return Object.values(toolbox).some(tool => tool?.id === toolId);
   };
 
-  const filledStagesCount = Object.values(workflow).filter(tool => tool !== null).length;
+  const filledStagesCount = Object.values(toolbox).filter(tool => tool !== null).length;
 
   const getSerializedToolbox = (): SerializedToolbox => {
     const tools: ToolboxItem[] = [];
@@ -196,12 +203,12 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
       billing: null,
     };
 
-    const stageEntries: [WorkflowStageId, Tool | null][] = [
-      ['scheduling', workflow.scheduling],
-      ['intake', workflow.intake],
-      ['documentation', workflow.documentation],
-      ['communication', workflow.communication],
-      ['billing', workflow.billing],
+    const stageEntries: [ToolboxStageId, Tool | null][] = [
+      ['scheduling', toolbox.scheduling],
+      ['intake', toolbox.intake],
+      ['documentation', toolbox.documentation],
+      ['communication', toolbox.communication],
+      ['billing', toolbox.billing],
     ];
 
     for (const [stageId, tool] of stageEntries) {
@@ -229,31 +236,27 @@ export function WorkflowProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <WorkflowContext.Provider
+    <ToolboxContext.Provider
       value={{
-        workflow,
-        isOpen,
+        toolbox,
         addTool,
         removeTool,
-        clearWorkflow,
-        openPanel,
-        closePanel,
-        togglePanel,
+        clearToolbox,
         getStageForTool,
-        isToolInWorkflow,
+        isToolInToolbox,
         filledStagesCount,
         getSerializedToolbox,
       }}
     >
       {children}
-    </WorkflowContext.Provider>
+    </ToolboxContext.Provider>
   );
 }
 
-export function useWorkflow(): WorkflowContextType {
-  const context = useContext(WorkflowContext);
+export function useToolbox(): ToolboxContextType {
+  const context = useContext(ToolboxContext);
   if (!context) {
-    throw new Error('useWorkflow must be used within a WorkflowProvider');
+    throw new Error('useToolbox must be used within a ToolboxProvider');
   }
   return context;
 }
