@@ -4,6 +4,65 @@ A running history of decisions, discussions, and changes made to the project.
 
 ---
 
+## January 9, 2026
+
+### Context
+Implemented a production-ready web scraper to discover HIPAA-compliant AI tools from theresanaiforthat.com (TAAFT) for potential catalog expansion. Identified 91 HIPAA-compliant tools, with 31 specifically focused on healthcare/medical workflows.
+
+### Changes Made
+
+#### 1. TAAFT Web Scraper Implementation
+- **Files:** `scripts/scrape-taaft-hipaa.py`, `scripts/requirements.txt`
+- Created multi-query search scraper (searches: "hipaa compliant", "baa", "healthcare compliant")
+- Implemented two-phase scraping: fast search results + optional enrichment
+- Added respectful rate limiting (configurable delays, default 0.5-1s)
+- Extracts structured data via schema.org JSON-LD (ratings, views, categories)
+- Deduplicates and filters out comment links and ref parameters
+- **Results:** Discovered 91 HIPAA-compliant tools (31 healthcare-specific)
+
+#### 2. Supporting Scripts & Tools
+- **Files:** `scripts/compare-catalogs.py`, `scripts/summarize-tools.py`
+- `compare-catalogs.py`: Compare TAAFT tools with Athen-ai catalog
+- `summarize-tools.py`: Generate terminal-friendly summary reports
+- Both tools support identifying gaps and expansion opportunities
+
+#### 3. Data & Documentation
+- **Files:** `data/taaft-hipaa-tools.json`, `reports/taaft-scraper-summary.md`, `scripts/README-SCRAPER.md`
+- `data/taaft-hipaa-tools.json`: Full scraped dataset (91 tools with metadata)
+- `reports/taaft-scraper-summary.md`: Comprehensive analysis report including:
+  - Top 10 healthcare tools by popularity
+  - Category breakdown and coverage analysis
+  - High-priority recommendations for Athen-ai
+  - Data quality assessment and next steps
+- `scripts/README-SCRAPER.md`: Complete technical documentation:
+  - Architecture and design decisions
+  - Usage examples and integration strategies
+  - Ethical considerations and limitations
+  - Troubleshooting guide
+
+### Key Findings
+- **Top 5 Healthcare Tools:**
+  1. S10 AI (5,314 views, Medical documentation)
+  2. Abridge (4,892 views, 5.0/5, Medical conversations)
+  3. SOAP Note AI (4,385 views, 5.0/5, SOAP notes)
+  4. Freed AI (3,623 views, Medical documentation)
+  5. Dorascribe (3,599 views, 5.0/5, Medical documentation)
+- **Strong coverage:** Clinical notes workflow (8+ tools)
+- **Gaps identified:** Patient instructions and prior authorization tools
+
+### Decisions Made
+- **Data source:** TAAFT chosen for comprehensive HIPAA tool coverage
+- **Scraping strategy:** Multi-query approach for maximum coverage (no structured HIPAA filter exists)
+- **Rate limiting:** Conservative delays (0.5-1s) to respect TAAFT infrastructure
+- **Attribution:** Maintain `source: "TAAFT"` in all data outputs
+
+### Next Steps
+- Manual verification of top 10 tools for BAA availability
+- Epic EHR compatibility assessment for MVP
+- Integration planning for high-priority tools
+
+---
+
 ## December 30, 2024
 
 ### Context
