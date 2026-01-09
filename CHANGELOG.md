@@ -278,7 +278,90 @@ Met with client (Orr) to confirm MVP direction. Original Athena repo was too com
 
 ---
 
-## Reference: Meeting Notes (Nov 24, 2024)
+## January 2025
+
+### Major UI/UX Overhaul - Split View with Tabbed Interface
+
+#### 1. Side-by-Side Layout with Tabbed Right Panel
+- **Problem:** Users wanted a more integrated experience where chat and workflow/tool setup could be viewed simultaneously
+- **Solution:** Implemented split view layout with chat on left and tabbed panel on right
+- **Files created:**
+  - `packages/frontend/src/components/SplitLayout.tsx` - Side-by-side layout container
+  - `packages/frontend/src/components/RightPanel.tsx` - Tabbed panel with navigation
+  - `packages/frontend/src/components/ToolboxTab.tsx` - Toolbox/workflow view (renamed from Workflow)
+  - `packages/frontend/src/components/ToolTab.tsx` - Individual tool setup guide view
+  - `packages/frontend/src/components/ToolboxStage.tsx` - Individual toolbox stage component
+  - `packages/frontend/src/context/TabContext.tsx` - Tab state management (open/close/switch tabs)
+  - `packages/frontend/src/context/ToolboxContext.tsx` - Toolbox state (renamed from WorkflowContext)
+- **Features:**
+  - Chat interface always visible on left side
+  - Right panel supports multiple tabs (Toolbox + individual tool setup guides)
+  - Clicking a tool card in chat opens a new tab in right panel (doesn't navigate away)
+  - Tabs can be closed (except Toolbox tab)
+  - Tab state persists in localStorage
+  - Smooth transitions between tabs
+
+#### 2. Renamed "Workflow" to "Toolbox"
+- **Rationale:** Better reflects that users are building a collection of tools, not a linear workflow
+- **Changes:**
+  - WorkflowContext → ToolboxContext
+  - WorkflowPanel → ToolboxTab
+  - WorkflowStage → ToolboxStage
+  - All UI text updated from "workflow" to "toolbox"
+  - localStorage migration from `athen-workflow` to `athen-toolbox`
+
+#### 3. Backend API Migration: Claude → OpenAI
+- **Problem:** Backend was still calling Claude API, causing connection errors
+- **Solution:** Migrated entire backend from Anthropic Foundry SDK to OpenAI SDK
+- **Files updated:**
+  - `packages/backend/src/services/claudeAI.ts` - Now uses OpenAI SDK
+  - `packages/backend/src/routes/chat.ts` - Updated API calls
+  - `api/chat.ts` - Vercel serverless function updated
+  - `packages/backend/src/data/systemPrompt.ts` - Updated for OpenAI
+- **Environment variables changed:**
+  - Old: `ANTHROPIC_FOUNDRY_API_KEY`, `ANTHROPIC_FOUNDRY_RESOURCE`, `ANTHROPIC_MODEL`
+  - New: `OPENAI_API_KEY`, `OPENAI_MODEL` (defaults to `gpt-4o`)
+- **README updated:** Environment setup instructions reflect OpenAI
+
+#### 4. Tool Setup Guide UI Improvements
+- **Removed elements:**
+  - Progress bar (took up too much space)
+  - "Mark complete" checkbox (unnecessary complexity)
+  - Pricing/setup time/best for section (redundant with "Before You Start")
+- **Layout changes:**
+  - Category and HIPAA badges moved inline with tool name (top of header)
+  - More space dedicated to setup instructions
+  - Cleaner, more focused interface
+- **Navigation improvements:**
+  - Previous/Next buttons now scroll to top of window when clicked
+  - Smooth scroll behavior for better UX
+  - Fixed scroll chaining issue (momentum scrolling no longer carries to main page)
+
+#### 5. Browse All Tools Enhancements
+- **Added "Add to Toolbox" button:**
+  - Top-right corner of each tool card
+  - Toggle functionality: click to add, click again to remove
+  - Visual feedback: shows "Added" with checkmark when in toolbox
+  - Green styling when added, indigo when not
+- **Layout:** Browse All Tools section remains below split view (scrollable)
+
+#### 6. UI Polish & Bug Fixes
+- **Scroll behavior:**
+  - Added `overscroll-contain` to prevent scroll chaining in nested scroll areas
+  - Fixed right panel height alignment with left panel
+- **Tab navigation:**
+  - Centered "Toolbox" tab name (no close button)
+  - Tool tabs show close button on right
+- **Empty states:**
+  - Removed suggested tool cards from empty Toolbox tab
+  - Cleaner empty state messaging
+- **localStorage migration:**
+  - Automatic migration from old "workflow" keys to new "toolbox" keys
+  - Handles old tab types gracefully
+
+---
+
+## Reference: Meeting Notes (Nov 24, 2025)
 
 From initial strategy call with Anjali:
 - Focus on subspecialties: plastic surgery, dermatology, orthopedic surgery

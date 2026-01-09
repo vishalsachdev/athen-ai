@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatToolCard } from './ChatToolCard';
-import { useWorkflow } from '../context/WorkflowContext';
+import { useToolbox } from '../context/ToolboxContext';
 import { useChat, Message } from '../context/ChatContext';
 
 export function ChatInterface() {
@@ -12,7 +12,7 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { getSerializedToolbox } = useWorkflow();
+  const { getSerializedToolbox } = useToolbox();
 
   // Auto-scroll to bottom when messages change (only within the chat container)
   useEffect(() => {
@@ -190,7 +190,7 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-white border border-slate-200 rounded-xl overflow-hidden">
+    <div className="flex flex-col h-full bg-white border border-slate-200 rounded-xl overflow-hidden">
       {/* Messages area */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
         {messages.length === 0 ? (
@@ -204,7 +204,7 @@ export function ChatInterface() {
               How can I help you today?
             </h3>
             <p className="text-slate-500 text-sm max-w-md">
-              Tell me about your practice and what challenges you're facing. I'll recommend the right AI tools for your workflow.
+              Tell me about your practice and what challenges you're facing. I'll recommend the right AI tools for your toolbox.
             </p>
             <div className="mt-4 flex flex-wrap gap-2 justify-center">
               {[
@@ -259,7 +259,7 @@ export function ChatInterface() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe your workflow challenge..."
+            placeholder="Describe your challenge..."
             rows={1}
             className="flex-1 resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             disabled={isLoading}

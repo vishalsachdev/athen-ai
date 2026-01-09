@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
 import { getToolById } from '../data/tools';
-import { useWorkflow } from '../context/WorkflowContext';
+import { useToolbox } from '../context/ToolboxContext';
+import { useTabs } from '../context/TabContext';
 
 interface ChatToolCardProps {
   toolId: string;
@@ -8,7 +8,8 @@ interface ChatToolCardProps {
 
 export function ChatToolCard({ toolId }: ChatToolCardProps) {
   const tool = getToolById(toolId);
-  const { addTool, isToolInWorkflow, getStageForTool } = useWorkflow();
+  const { addTool, isToolInToolbox, getStageForTool } = useToolbox();
+  const { openToolTab } = useTabs();
 
   if (!tool) {
     return (
@@ -83,7 +84,10 @@ export function ChatToolCard({ toolId }: ChatToolCardProps) {
         </div>
         <div className="flex items-center gap-2">
           {tool.hipaaCompliant && (
-            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full flex items-center gap-1">
+            <span 
+              className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full flex items-center gap-1 cursor-help" 
+              title="HIPAA Compliant: This tool meets HIPAA requirements for patient data protection. Always verify with vendor for your specific use case."
+            >
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
@@ -115,14 +119,14 @@ export function ChatToolCard({ toolId }: ChatToolCardProps) {
 
       {/* Action buttons */}
       <div className="flex items-center gap-2">
-        <Link
-          to={`/tools/${tool.id}`}
+        <button
+          onClick={() => openToolTab(tool.id, tool.name)}
           className="flex-1 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors text-center"
         >
           {tool.id === 'freed-ai' || tool.id === 'doximity-scribe' || tool.id === 'intakeq'
             ? 'View Setup Guide'
             : 'Learn More'}
-        </Link>
+        </button>
         <a
           href={tool.website}
           target="_blank"
@@ -136,23 +140,23 @@ export function ChatToolCard({ toolId }: ChatToolCardProps) {
         </a>
       </div>
 
-      {/* Add to Workflow button */}
+      {/* Add to Toolbox button */}
       {getStageForTool(tool) && (
         <button
           onClick={() => addTool(tool)}
-          disabled={isToolInWorkflow(tool.id)}
+          disabled={isToolInToolbox(tool.id)}
           className={`w-full mt-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-            isToolInWorkflow(tool.id)
+            isToolInToolbox(tool.id)
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
               : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
           }`}
         >
-          {isToolInWorkflow(tool.id) ? (
+          {isToolInToolbox(tool.id) ? (
             <>
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              In Toolbox
+              Added ✓
             </>
           ) : (
             <>
