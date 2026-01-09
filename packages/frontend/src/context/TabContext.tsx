@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 export interface ToolTab {
   id: string;
-  type: 'toolbox' | 'tool';
+  type: 'toolbox' | 'tool' | 'suggested';
   toolId?: string;
   title: string;
   isActive: boolean;
@@ -13,11 +13,13 @@ interface TabContextType {
   tabs: ToolTab[];
   activeTabId: string | null;
   openToolTab: (toolId: string, title: string) => void;
+  openSuggestedToolsTab: () => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   getActiveTab: () => ToolTab | null;
   isToolTabOpen: (toolId: string) => boolean;
   getToolTabId: (toolId: string) => string | null;
+  isSuggestedToolsTabOpen: () => boolean;
 }
 
 const TabContext = createContext<TabContextType | null>(null);
@@ -26,8 +28,9 @@ const STORAGE_KEY = 'athen-open-tabs';
 const ACTIVE_TAB_KEY = 'athen-active-tab';
 
 // Generate unique tab ID
-function generateTabId(type: 'toolbox' | 'tool', toolId?: string): string {
+function generateTabId(type: 'toolbox' | 'tool' | 'suggested', toolId?: string): string {
   if (type === 'toolbox') return 'toolbox';
+  if (type === 'suggested') return 'suggested-tools';
   return `tool-${toolId}`;
 }
 
@@ -37,7 +40,7 @@ function loadTabsFromStorage(): ToolTab[] {
     if (saved) {
       const parsed = JSON.parse(saved) as Array<{
         id: string;
-        type: 'toolbox' | 'tool' | 'workflow'; // Support old 'workflow' type for migration
+        type: 'toolbox' | 'tool' | 'suggested' | 'workflow'; // Support old 'workflow' type for migration
         toolId?: string;
         title: string;
         canClose: boolean;
@@ -53,7 +56,7 @@ function loadTabsFromStorage(): ToolTab[] {
             isActive: false,
           };
         }
-        return { ...tab, type: tab.type as 'toolbox' | 'tool', isActive: false };
+        return { ...tab, type: tab.type as 'toolbox' | 'tool' | 'suggested', isActive: false };
       });
       
       // Ensure toolbox tab exists
@@ -265,17 +268,53 @@ export function TabProvider({ children }: { children: ReactNode }) {
     return tab ? tab.id : null;
   };
 
+  const openSuggestedToolsTab = () => {
+    const tabId = generateTabId('suggested');
+    
+    setTabs(prev => {
+      // Check if tab already exists
+      if (prev.some(t => t.id === tabId)) {
+        // Tab exists, just activate it
+        setActiveTabId(tabId);
+        return prev;
+      }
+
+      // Create new tab and make it active
+      const newTab: ToolTab = {
+        id: tabId,
+        type: 'suggested',
+        title: 'Suggested Tools',
+        isActive: true,
+        canClose: true,
+      };
+
+      // Set all other tabs to inactive
+      const updatedTabs = prev.map(t => ({ ...t, isActive: false }));
+      
+      // Add new tab and activate it
+      setActiveTabId(tabId);
+      return [...updatedTabs, newTab];
+    });
+  };
+
+  const isSuggestedToolsTabOpen = (): boolean => {
+    const tabId = generateTabId('suggested');
+    return tabs.some(t => t.id === tabId);
+  };
+
   return (
     <TabContext.Provider
       value={{
         tabs,
         activeTabId,
         openToolTab,
+        openSuggestedToolsTab,
         closeTab,
         setActiveTab,
         getActiveTab,
         isToolTabOpen,
         getToolTabId,
+        isSuggestedToolsTabOpen,
       }}
     >
       {children}

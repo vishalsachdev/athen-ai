@@ -1,6 +1,7 @@
 import { useTabs } from '../context/TabContext';
 import { ToolboxTab } from './ToolboxTab';
 import { ToolTab } from './ToolTab';
+import { SuggestedToolsTab } from './SuggestedToolsTab';
 
 export function RightPanel() {
   const { tabs, activeTabId } = useTabs();
@@ -36,10 +37,11 @@ export function RightPanel() {
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {displayTab.type === 'toolbox' && <ToolboxTab />}
+        {displayTab.type === 'suggested' && <SuggestedToolsTab />}
         {displayTab.type === 'tool' && displayTab.toolId && (
           <ToolTab toolId={displayTab.toolId} />
         )}
-        {displayTab.type !== 'toolbox' && displayTab.type !== 'tool' && (
+        {displayTab.type !== 'toolbox' && displayTab.type !== 'suggested' && displayTab.type !== 'tool' && (
           <div className="p-6">
             <p className="text-slate-500">Unknown tab type</p>
           </div>

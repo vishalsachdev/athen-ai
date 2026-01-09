@@ -2,17 +2,18 @@ import { useState, useRef, useEffect, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ChatToolCard } from './ChatToolCard';
 import { useToolbox } from '../context/ToolboxContext';
 import { useChat, Message } from '../context/ChatContext';
+import { useTabs } from '../context/TabContext';
 
 export function ChatInterface() {
-  const { messages, setMessages } = useChat();
+  const { messages, setMessages, addSuggestedTool, suggestedToolIds } = useChat();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { getSerializedToolbox } = useToolbox();
+  const { openSuggestedToolsTab, isSuggestedToolsTabOpen } = useTabs();
 
   // Auto-scroll to bottom when messages change (only within the chat container)
   useEffect(() => {
@@ -21,6 +22,32 @@ export function ChatInterface() {
       container.scrollTop = container.scrollHeight;
     }
   }, [messages]);
+
+  // Extract tool IDs from assistant messages and create Suggested Tools tab
+  useEffect(() => {
+    const toolCardPattern = /\[\[TOOL:([a-z0-9-]+)\]\]/g;
+    let hasNewTools = false;
+    let shouldOpenTab = false;
+
+    messages.forEach(message => {
+      if (message.role === 'assistant' && message.content) {
+        const matches = [...message.content.matchAll(toolCardPattern)];
+        matches.forEach(match => {
+          const toolId = match[1];
+          if (!suggestedToolIds.includes(toolId)) {
+            addSuggestedTool(toolId);
+            hasNewTools = true;
+            shouldOpenTab = true;
+          }
+        });
+      }
+    });
+
+    // Auto-open Suggested Tools tab when new tools are detected
+    if (shouldOpenTab && !isSuggestedToolsTabOpen()) {
+      openSuggestedToolsTab();
+    }
+  }, [messages, suggestedToolIds, addSuggestedTool, openSuggestedToolsTab, isSuggestedToolsTabOpen]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -123,23 +150,26 @@ export function ChatInterface() {
     }
   };
 
-  // Render markdown content with tool cards
+  // Extract tool count from content
+  const getToolCount = (content: string): number => {
+    const toolCardPattern = /\[\[TOOL:([a-z0-9-]+)\]\]/g;
+    const matches = [...content.matchAll(toolCardPattern)];
+    return matches.length;
+  };
+
+  // Render markdown content, removing tool card markers and showing indicator
   const renderContent = (content: string): ReactNode[] => {
-    // Split by tool card markers [[TOOL:tool-id]]
-    const toolCardPattern = /(\[\[TOOL:[a-z0-9-]+\]\])/g;
-    const segments = content.split(toolCardPattern);
+    const toolCardPattern = /\[\[TOOL:[a-z0-9-]+\]\]/g;
+    const toolCount = getToolCount(content);
+    
+    // Remove tool markers from content before rendering
+    const cleanedContent = content.replace(toolCardPattern, '').trim();
 
-    return segments.map((segment, segmentIndex) => {
-      // Check if this segment is a tool card marker
-      const toolMatch = segment.match(/\[\[TOOL:([a-z0-9-]+)\]\]/);
-      if (toolMatch) {
-        return <ChatToolCard key={`tool-${segmentIndex}`} toolId={toolMatch[1]} />;
-      }
-
-      // Render markdown for text segments
-      return (
+    return [
+      // Render markdown for text content
+      cleanedContent && (
         <ReactMarkdown
-          key={`md-${segmentIndex}`}
+          key="md-content"
           remarkPlugins={[remarkGfm]}
           components={{
             // Custom link renderer for internal /tools/ links
@@ -183,10 +213,27 @@ export function ChatInterface() {
             td: ({ children }) => <td className="px-3 py-2 text-sm text-slate-600 border-r border-slate-200 last:border-r-0">{children}</td>,
           }}
         >
-          {segment}
+          {cleanedContent}
         </ReactMarkdown>
-      );
-    });
+      ),
+      // Show tool indicator at the bottom if tools were suggested
+      toolCount > 0 && (
+        <div key="tool-indicator" className="mt-3">
+          <button
+            onClick={() => openSuggestedToolsTab()}
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-lg hover:bg-indigo-100 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            {toolCount} {toolCount === 1 ? 'tool' : 'tools'} suggested — view in Suggested Tools tab
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      ),
+    ].filter(Boolean) as ReactNode[];
   };
 
   return (
