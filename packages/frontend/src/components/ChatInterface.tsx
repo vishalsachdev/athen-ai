@@ -26,7 +26,6 @@ export function ChatInterface() {
   // Extract tool IDs from assistant messages and create Suggested Tools tab
   useEffect(() => {
     const toolCardPattern = /\[\[TOOL:([a-z0-9-]+)\]\]/g;
-    let hasNewTools = false;
     let shouldOpenTab = false;
 
     messages.forEach(message => {
@@ -36,7 +35,6 @@ export function ChatInterface() {
           const toolId = match[1];
           if (!suggestedToolIds.includes(toolId)) {
             addSuggestedTool(toolId);
-            hasNewTools = true;
             shouldOpenTab = true;
           }
         });

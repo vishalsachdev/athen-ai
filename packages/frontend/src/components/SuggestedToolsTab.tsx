@@ -1,8 +1,7 @@
-import { getToolById, tools } from '../data/tools';
+import { getToolById } from '../data/tools';
 import { useChat } from '../context/ChatContext';
 import { useToolbox } from '../context/ToolboxContext';
 import { useTabs } from '../context/TabContext';
-import { ToolCard } from './ToolCard';
 
 export function SuggestedToolsTab() {
   const { suggestedToolIds, clearSuggestedTools } = useChat();
