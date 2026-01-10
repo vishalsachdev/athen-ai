@@ -499,31 +499,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.end();
     } catch (streamError) {
       console.error('Streaming error:', streamError);
-      // If headers already sent, end the response with error
+      const errorMessage = streamError instanceof Error ? streamError.message : 'Failed to stream response';
+      
+      // If headers already sent, end the response with error in stream format
       if (res.headersSent) {
-        res.write(`data: ${JSON.stringify({ error: 'Stream interrupted' })}\n\n`);
+        res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
         res.end();
       } else {
         res.status(500).json({
           error: {
             code: 'STREAM_ERROR',
-            message: 'Failed to stream response',
+            message: errorMessage,
           },
         });
       }
     }
   } catch (error) {
     console.error('Chat API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
 
-    // If headers already sent, end the stream with error
+    // If headers already sent, end the stream with error in stream format
     if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ error: 'Stream interrupted' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
       res.end();
     } else {
       res.status(500).json({
         error: {
           code: 'INTERNAL_ERROR',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          message: errorMessage,
         },
       });
     }

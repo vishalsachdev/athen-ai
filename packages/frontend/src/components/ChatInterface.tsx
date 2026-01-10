@@ -103,38 +103,80 @@ export function ChatInterface() {
 
       // Track accumulated content during streaming
       let accumulatedContent = '';
+      let streamError: string | null = null;
+      let streamDone = false;
 
       // Read the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.content) {
-                accumulatedContent += data.content;
-                setMessages(prev =>
-                  prev.map(m =>
-                    m.id === assistantId
-                      ? { ...m, content: m.content + data.content }
-                      : m
-                  )
-                );
+          for (const line of lines) {
+            if (!line.trim()) continue; // Skip empty lines
+            
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                // Check for error in stream
+                if (data.error) {
+                  streamError = data.error;
+                  console.error('Stream error from backend:', data.error);
+                  throw new Error(data.error);
+                }
+                
+                // Check for done signal
+                if (data.done) {
+                  streamDone = true;
+                  break; // This breaks the for loop, but we'll check streamDone below
+                }
+                
+                // Handle content chunks
+                if (data.content) {
+                  accumulatedContent += data.content;
+                  setMessages(prev =>
+                    prev.map(m =>
+                      m.id === assistantId
+                        ? { ...m, content: m.content + data.content }
+                        : m
+                    )
+                  );
+                }
+              } catch (parseError) {
+                // If it's an intentional error (not a parse error), re-throw it
+                if (streamError) {
+                  throw parseError;
+                }
+                // Ignore JSON parse errors for incomplete chunks (this is normal during streaming)
+                if (parseError instanceof SyntaxError) {
+                  continue;
+                }
+                // Re-throw other errors
+                throw parseError;
               }
-            } catch {
-              // Ignore parse errors for incomplete chunks
             }
           }
+          
+          // If stream is done, break out of the while loop
+          if (streamDone) break;
         }
+      } catch (streamReadError) {
+        console.error('Stream read error:', streamReadError);
+        // If we have accumulated content, keep it; otherwise show error
+        if (accumulatedContent.trim().length === 0) {
+          throw streamReadError;
+        }
+        // If we have some content, continue but log the error
+        console.warn('Stream ended early but we have content:', accumulatedContent.substring(0, 100));
       }
 
-      // After streaming completes, generate AI suggestions for the assistant's message
-      if (accumulatedContent.trim().length > 50) {
+      // After streaming completes successfully, generate AI suggestions for the assistant's message
+      // Only if we got meaningful content and no stream error occurred
+      if (!streamError && accumulatedContent.trim().length > 50) {
         // Fetch suggestions asynchronously (don't block UI)
         fetch('/api/suggestions', {
           method: 'POST',
@@ -143,7 +185,12 @@ export function ChatInterface() {
             assistantMessage: accumulatedContent.trim(),
           }),
         })
-          .then(res => res.json())
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`Suggestions API returned ${res.status}`);
+            }
+            return res.json();
+          })
           .then(data => {
             if (data.suggestions && Array.isArray(data.suggestions)) {
               setSuggestions(prev => ({
@@ -159,10 +206,23 @@ export function ChatInterface() {
       }
     } catch (error) {
       console.error('Chat error:', error);
+      
+      // Get a more descriptive error message
+      let errorMessage = 'Sorry, I encountered an error. Please try again.';
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+        // If it's a network error, provide a more helpful message
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          errorMessage = 'Unable to connect to the server. Please check your connection and try again.';
+        } else if (error.message.includes('API key')) {
+          errorMessage = 'Server configuration error. Please contact support.';
+        }
+      }
+      
       setMessages(prev =>
         prev.map(m =>
           m.id === assistantId
-            ? { ...m, content: 'Sorry, I encountered an error. Please try again.' }
+            ? { ...m, content: errorMessage }
             : m
         )
       );
