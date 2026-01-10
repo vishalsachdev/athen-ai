@@ -1,96 +1,19 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import OpenAI from 'openai';
-import { getSystemPrompt, SerializedToolbox } from '../data/systemPrompt';
-
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
 
 // Create OpenAI client
 function getClient(): OpenAI {
-  // Read environment variables at runtime, not at module load time
   const apiKey = process.env.OPENAI_API_KEY;
-  
+
   if (!apiKey) {
-    throw new Error('OpenAI API key not configured. Set OPENAI_API_KEY.');
+    throw new Error('OPENAI_API_KEY environment variable not set');
   }
 
   return new OpenAI({ apiKey });
 }
 
-// Get chat completion using OpenAI API
-export async function getChatCompletion(messages: ChatMessage[], toolbox?: SerializedToolbox): Promise<string> {
-  const client = getClient();
-  const systemPrompt = getSystemPrompt(toolbox);
-  // Read model at runtime
-  const model = process.env.OPENAI_MODEL || 'gpt-4o';
-
-  console.log('Calling OpenAI');
-  console.log('Model:', model);
-
-  const response = await client.chat.completions.create({
-    model,
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      ...messages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
-    ],
-    stream: false,
-  });
-
-  console.log('Response received');
-
-  if (response.choices && response.choices.length > 0) {
-    const content = response.choices[0].message?.content;
-    return content || '';
-  }
-
-  return '';
-}
-
-// Streaming - yields chunks of the response for a typewriter effect
-export async function* streamChatCompletion(
-  messages: ChatMessage[],
-  toolbox?: SerializedToolbox
-): AsyncGenerator<string, void, unknown> {
-  const client = getClient();
-  const systemPrompt = getSystemPrompt(toolbox);
-  const model = process.env.OPENAI_MODEL || 'gpt-4o';
-
-  console.log('Streaming OpenAI response');
-
-  const stream = await client.chat.completions.create({
-    model,
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      ...messages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
-    ],
-    stream: true,
-  });
-
-  for await (const chunk of stream) {
-    const content = chunk.choices[0]?.delta?.content;
-    if (content) {
-      yield content;
-    }
-  }
-}
-
-// Generate suggested responses based on assistant's message
-export async function generateSuggestedResponses(assistantMessage: string): Promise<string[]> {
+// Generate suggested responses using OpenAI
+async function generateSuggestedResponses(assistantMessage: string): Promise<string[]> {
   const client = getClient();
   const model = process.env.OPENAI_MODEL || 'gpt-4o';
 
@@ -128,6 +51,8 @@ Generate exactly 3 suggestions, one per line, without numbers or bullets:`;
       const suggestions = content
         .split('\n')
         .map(s => s.trim())
+        .filter(s => s.length > 0 && !/^\d+[\.\)]/.test(s)) // Remove numbered list markers
+        .map(s => s.replace(/^[-*•]\s*/, '').trim()) // Remove bullet points
         .filter(s => s.length > 0)
         .slice(0, 3); // Ensure max 3
 
@@ -158,4 +83,51 @@ function getFallbackSuggestions(message: string): string[] {
   }
   
   return ['Tell me more', 'What are my options?', 'How do I get started?'];
+}
+
+// Vercel serverless function handler
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  // Only allow POST
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST is allowed' } });
+    return;
+  }
+
+  try {
+    const { assistantMessage } = req.body as { assistantMessage: string };
+
+    if (!assistantMessage || typeof assistantMessage !== 'string') {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'assistantMessage is required and must be a string',
+        },
+      });
+      return;
+    }
+
+    const suggestions = await generateSuggestedResponses(assistantMessage);
+
+    res.json({ suggestions });
+  } catch (error) {
+    console.error('Suggestions API error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+      },
+    });
+  }
 }

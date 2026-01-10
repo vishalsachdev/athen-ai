@@ -420,6 +420,77 @@ async function* streamChatCompletion(
   }
 }
 
+// Generate suggested responses using OpenAI
+async function generateSuggestedResponses(assistantMessage: string): Promise<string[]> {
+  const client = getClient();
+  const model = process.env.OPENAI_MODEL || 'gpt-4o';
+
+  const prompt = `Based on the following assistant message from a healthcare AI tool consultant, generate exactly 3 short, conversational suggested responses that a user might want to click to continue the conversation. The suggestions should be:
+- Relevant to what the assistant just said
+- Conversational and natural (like quick replies)
+- 10-15 words maximum each
+- Useful follow-up questions or responses
+
+Assistant message:
+${assistantMessage}
+
+Generate exactly 3 suggestions, one per line, without numbers or bullets:`;
+
+  try {
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a UX assistant that generates helpful, short suggested responses for chat interfaces. Return only the suggestions, one per line, without numbers or formatting.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      max_tokens: 150,
+      temperature: 0.8,
+    });
+
+    if (response.choices && response.choices.length > 0) {
+      const content = response.choices[0].message?.content || '';
+      // Parse suggestions - split by newline and clean up
+      const suggestions = content
+        .split('\n')
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
+        .slice(0, 3); // Ensure max 3
+
+      return suggestions.length > 0 ? suggestions : getFallbackSuggestions(assistantMessage);
+    }
+
+    return getFallbackSuggestions(assistantMessage);
+  } catch (error) {
+    console.error('Error generating suggestions:', error);
+    return getFallbackSuggestions(assistantMessage);
+  }
+}
+
+// Fallback suggestions if AI generation fails
+function getFallbackSuggestions(message: string): string[] {
+  const lowerMessage = message.toLowerCase();
+  
+  if (lowerMessage.includes('tool') || lowerMessage.includes('recommend')) {
+    return ['Tell me more about this', 'How do I get started?', 'What are the alternatives?'];
+  }
+  
+  if (lowerMessage.includes('specialty')) {
+    return ['Plastic Surgery', 'Dermatology', 'General Practice'];
+  }
+  
+  if (lowerMessage.includes('budget') || lowerMessage.includes('cost')) {
+    return ['Looking for free options', 'Budget under $100/month', 'Cost is flexible'];
+  }
+  
+  return ['Tell me more', 'What are my options?', 'How do I get started?'];
+}
+
 // Vercel serverless function handler
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle CORS
@@ -434,7 +505,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // Only allow POST
+  // Handle suggestions endpoint via query parameter
+  if (req.method === 'POST' && req.query.action === 'suggestions') {
+    try {
+      const { assistantMessage } = req.body as { assistantMessage: string };
+
+      if (!assistantMessage || typeof assistantMessage !== 'string') {
+        res.status(400).json({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: 'assistantMessage is required and must be a string',
+          },
+        });
+        return;
+      }
+
+      const suggestions = await generateSuggestedResponses(assistantMessage);
+      res.json({ suggestions });
+      return;
+    } catch (error) {
+      console.error('Suggestions endpoint error:', error);
+      res.status(500).json({
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        },
+      });
+      return;
+    }
+  }
+
+  // Only allow POST for main chat endpoint
   if (req.method !== 'POST') {
     res.status(405).json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST is allowed' } });
     return;

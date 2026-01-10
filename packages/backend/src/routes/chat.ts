@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { streamChatCompletion, ChatMessage } from '../services/openaiAI';
+import { streamChatCompletion, generateSuggestedResponses, ChatMessage } from '../services/openaiAI';
 import { SerializedToolbox } from '../data/systemPrompt';
 
 const router = Router();
@@ -87,6 +87,35 @@ router.post('/', async (req: Request<{}, {}, ChatRequest>, res: Response) => {
         },
       });
     }
+  }
+});
+
+// POST /api/v1/chat/suggestions - Generate suggested responses based on assistant message
+router.post('/suggestions', async (req: Request, res: Response) => {
+  try {
+    const { assistantMessage } = req.body as { assistantMessage: string };
+
+    if (!assistantMessage || typeof assistantMessage !== 'string') {
+      res.status(400).json({
+        error: {
+          code: 'INVALID_REQUEST',
+          message: 'assistantMessage is required and must be a string',
+        },
+      });
+      return;
+    }
+
+    const suggestions = await generateSuggestedResponses(assistantMessage);
+
+    res.json({ suggestions });
+  } catch (error) {
+    console.error('Suggestions endpoint error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+      },
+    });
   }
 });
 

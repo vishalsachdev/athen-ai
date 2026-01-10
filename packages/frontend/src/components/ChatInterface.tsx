@@ -5,12 +5,12 @@ import remarkGfm from 'remark-gfm';
 import { useToolbox } from '../context/ToolboxContext';
 import { useChat, Message } from '../context/ChatContext';
 import { useTabs } from '../context/TabContext';
-import { generateSuggestedResponses } from '../utils/suggestedResponses';
 
 export function ChatInterface() {
   const { messages, setMessages, addSuggestedTool, suggestedToolIds } = useChat();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<Record<string, string[]>>({});
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { getSerializedToolbox } = useToolbox();
@@ -101,6 +101,9 @@ export function ChatInterface() {
         throw new Error('No response body');
       }
 
+      // Track accumulated content during streaming
+      let accumulatedContent = '';
+
       // Read the stream
       while (true) {
         const { done, value } = await reader.read();
@@ -114,6 +117,7 @@ export function ChatInterface() {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.content) {
+                accumulatedContent += data.content;
                 setMessages(prev =>
                   prev.map(m =>
                     m.id === assistantId
@@ -127,6 +131,31 @@ export function ChatInterface() {
             }
           }
         }
+      }
+
+      // After streaming completes, generate AI suggestions for the assistant's message
+      if (accumulatedContent.trim().length > 50) {
+        // Fetch suggestions asynchronously (don't block UI)
+        fetch('/api/suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assistantMessage: accumulatedContent.trim(),
+          }),
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.suggestions && Array.isArray(data.suggestions)) {
+              setSuggestions(prev => ({
+                ...prev,
+                [assistantId]: data.suggestions,
+              }));
+            }
+          })
+          .catch(err => {
+            console.error('Failed to generate suggestions:', err);
+            // Continue without suggestions - not critical
+          });
       }
     } catch (error) {
       console.error('Chat error:', error);
@@ -306,7 +335,8 @@ export function ChatInterface() {
                       {/* Show suggested responses only on the last completed assistant message */}
                       {isLastAssistantMessage && (
                         <SuggestedResponses 
-                          messageContent={message.content}
+                          messageId={message.id}
+                          suggestions={suggestions[message.id] || []}
                           onSelect={(suggestion) => {
                             setInput(suggestion);
                             inputRef.current?.focus();
@@ -358,15 +388,14 @@ export function ChatInterface() {
 }
 
 interface SuggestedResponsesProps {
-  messageContent: string;
+  messageId: string;
+  suggestions: string[];
   onSelect: (suggestion: string) => void;
 }
 
-function SuggestedResponses({ messageContent, onSelect }: SuggestedResponsesProps) {
-  const suggestions = generateSuggestedResponses(messageContent);
-
-  // Don't show suggestions if none were generated or if message is too short
-  if (suggestions.length === 0 || messageContent.trim().length < 50) {
+function SuggestedResponses({ suggestions, onSelect }: SuggestedResponsesProps) {
+  // Don't show suggestions if none were generated
+  if (!suggestions || suggestions.length === 0) {
     return null;
   }
 
