@@ -18,33 +18,10 @@ interface ChatContextType {
 
 const ChatContext = createContext<ChatContextType | null>(null);
 
-const STORAGE_KEY = 'athen-suggested-tools';
-
-function loadSuggestedToolsFromStorage(): string[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved) as string[];
-    }
-  } catch (e) {
-    console.error('Failed to load suggested tools from storage:', e);
-  }
-  return [];
-}
-
-function saveSuggestedToolsToStorage(toolIds: string[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toolIds));
-  } catch (e) {
-    console.error('Failed to save suggested tools to storage:', e);
-  }
-}
-
 export function ChatProvider({ children }: { children: ReactNode }) {
+  // Initialize with empty state - no persistence across refreshes
   const [messages, setMessages] = useState<Message[]>([]);
-  const [suggestedToolIds, setSuggestedToolIds] = useState<string[]>(() => 
-    loadSuggestedToolsFromStorage()
-  );
+  const [suggestedToolIds, setSuggestedToolIds] = useState<string[]>([]);
 
   const clearMessages = () => {
     setMessages([]);
@@ -57,21 +34,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (prev.includes(toolId)) {
         return prev;
       }
-      const updated = [...prev, toolId];
-      saveSuggestedToolsToStorage(updated);
-      return updated;
+      return [...prev, toolId];
     });
   };
 
   const clearSuggestedTools = () => {
     setSuggestedToolIds([]);
-    saveSuggestedToolsToStorage([]);
   };
-
-  // Save to storage whenever suggested tools change
-  React.useEffect(() => {
-    saveSuggestedToolsToStorage(suggestedToolIds);
-  }, [suggestedToolIds]);
 
   return (
     <ChatContext.Provider value={{ 

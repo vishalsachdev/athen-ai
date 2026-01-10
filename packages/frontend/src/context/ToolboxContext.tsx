@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import { Tool, getToolById } from '../data/tools';
 import { getGuideByToolId } from '../data/guides';
 
@@ -62,9 +62,6 @@ interface ToolboxContextType {
 
 const ToolboxContext = createContext<ToolboxContextType | null>(null);
 
-const STORAGE_KEY = 'athen-toolbox';
-const UNSEEN_TOOLS_KEY = 'athen-unseen-tools-count';
-
 // Map tool category to toolbox stage
 export function getStageForToolCategory(category: Tool['category']): ToolboxStageId | null {
   switch (category) {
@@ -86,97 +83,20 @@ export function getStageForToolCategory(category: Tool['category']): ToolboxStag
   }
 }
 
-function loadToolboxFromStorage(): ToolboxState {
-  try {
-    // Try new key first
-    let saved = localStorage.getItem(STORAGE_KEY);
-    
-    // If not found, try migrating from old 'athen-workflow' key
-    if (!saved) {
-      const oldSaved = localStorage.getItem('athen-workflow');
-      if (oldSaved) {
-        try {
-          const oldParsed = JSON.parse(oldSaved) as Record<string, string | null>;
-          // Migrate old workflow data to new toolbox format
-          const migrated = {
-            scheduling: oldParsed.scheduling || null,
-            intake: oldParsed.intake || null,
-            documentation: oldParsed.documentation || null,
-            communication: oldParsed.communication || null,
-            billing: oldParsed.billing || null,
-          };
-          // Save to new key
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-          saved = JSON.stringify(migrated);
-        } catch (e) {
-          console.error('Failed to migrate old workflow data:', e);
-        }
-      }
-    }
-    
-    if (saved) {
-      const parsed = JSON.parse(saved) as Record<string, string | null>;
-      return {
-        scheduling: parsed.scheduling ? getToolById(parsed.scheduling) || null : null,
-        intake: parsed.intake ? getToolById(parsed.intake) || null : null,
-        documentation: parsed.documentation ? getToolById(parsed.documentation) || null : null,
-        communication: parsed.communication ? getToolById(parsed.communication) || null : null,
-        billing: parsed.billing ? getToolById(parsed.billing) || null : null,
-      };
-    }
-  } catch (e) {
-    console.error('Failed to load toolbox from storage:', e);
-  }
-  return {
+
+export function ToolboxProvider({ children }: { children: ReactNode }) {
+  // Initialize with empty toolbox state - no persistence across refreshes
+  const [toolbox, setToolbox] = useState<ToolboxState>({
     scheduling: null,
     intake: null,
     documentation: null,
     communication: null,
     billing: null,
-  };
-}
-
-function saveToolboxToStorage(toolbox: ToolboxState): void {
-  try {
-    const toSave = {
-      scheduling: toolbox.scheduling?.id || null,
-      intake: toolbox.intake?.id || null,
-      documentation: toolbox.documentation?.id || null,
-      communication: toolbox.communication?.id || null,
-      billing: toolbox.billing?.id || null,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-  } catch (e) {
-    console.error('Failed to save toolbox to storage:', e);
-  }
-}
-
-export function ToolboxProvider({ children }: { children: ReactNode }) {
-  const [toolbox, setToolbox] = useState<ToolboxState>(loadToolboxFromStorage);
+  });
   
   // Track unseen new tools count (tools added but not yet viewed in Toolbox tab)
-  const [unseenNewToolsCount, setUnseenNewToolsCount] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem(UNSEEN_TOOLS_KEY);
-      return saved ? parseInt(saved, 10) : 0;
-    } catch {
-      return 0;
-    }
-  });
-
-  // Save to localStorage whenever toolbox changes
-  useEffect(() => {
-    saveToolboxToStorage(toolbox);
-  }, [toolbox]);
-
-  // Save unseen count to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(UNSEEN_TOOLS_KEY, unseenNewToolsCount.toString());
-    } catch (e) {
-      console.error('Failed to save unseen tools count:', e);
-    }
-  }, [unseenNewToolsCount]);
+  // No persistence - resets on refresh
+  const [unseenNewToolsCount, setUnseenNewToolsCount] = useState<number>(0);
 
   const getStageForTool = (tool: Tool): ToolboxStageId | null => {
     return getStageForToolCategory(tool.category);
