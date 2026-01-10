@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { useToolbox } from '../context/ToolboxContext';
 import { useChat, Message } from '../context/ChatContext';
 import { useTabs } from '../context/TabContext';
+import { generateSuggestedResponses } from '../utils/suggestedResponses';
 
 export function ChatInterface() {
   const { messages, setMessages, addSuggestedTool, suggestedToolIds } = useChat();
@@ -268,31 +269,60 @@ export function ChatInterface() {
             </div>
           </div>
         ) : (
-          messages.map(message => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {message.role === 'assistant' ? (
-                <div className="max-w-xl">
-                  <div className="text-sm leading-relaxed text-slate-800">
-                    {renderContent(message.content)}
-                    {isLoading && message.content === '' && (
-                      <div className="bg-slate-100 rounded-2xl px-4 py-3 inline-flex gap-1">
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          (() => {
+            // Find the index of the last assistant message
+            let lastAssistantIndex = -1;
+            for (let i = messages.length - 1; i >= 0; i--) {
+              if (messages[i].role === 'assistant') {
+                lastAssistantIndex = i;
+                break;
+              }
+            }
+
+            return messages.map((message, index) => {
+              // Check if this is the last assistant message and it's complete
+              const isLastAssistantMessage = message.role === 'assistant' && 
+                index === lastAssistantIndex && 
+                !isLoading && 
+                message.content.trim();
+
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  {message.role === 'assistant' ? (
+                    <div className="max-w-xl w-full">
+                      <div className="text-sm leading-relaxed text-slate-800">
+                        {renderContent(message.content)}
+                        {isLoading && message.content === '' && (
+                          <div className="bg-slate-100 rounded-2xl px-4 py-3 inline-flex gap-1">
+                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                      {/* Show suggested responses only on the last completed assistant message */}
+                      {isLastAssistantMessage && (
+                        <SuggestedResponses 
+                          messageContent={message.content}
+                          onSelect={(suggestion) => {
+                            setInput(suggestion);
+                            inputRef.current?.focus();
+                          }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-indigo-600 text-white">
+                      <p className="text-sm">{message.content}</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-indigo-600 text-white">
-                  <p className="text-sm">{message.content}</p>
-                </div>
-              )}
-            </div>
-          ))
+              );
+            });
+          })()
         )}
       </div>
 
@@ -323,6 +353,34 @@ export function ChatInterface() {
           Athen AI helps you find healthcare tools. Always verify compliance requirements for your practice.
         </p>
       </div>
+    </div>
+  );
+}
+
+interface SuggestedResponsesProps {
+  messageContent: string;
+  onSelect: (suggestion: string) => void;
+}
+
+function SuggestedResponses({ messageContent, onSelect }: SuggestedResponsesProps) {
+  const suggestions = generateSuggestedResponses(messageContent);
+
+  // Don't show suggestions if none were generated or if message is too short
+  if (suggestions.length === 0 || messageContent.trim().length < 50) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {suggestions.map((suggestion, index) => (
+        <button
+          key={index}
+          onClick={() => onSelect(suggestion)}
+          className="text-xs px-3 py-1.5 bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 hover:text-slate-900 transition-colors border border-slate-200"
+        >
+          {suggestion}
+        </button>
+      ))}
     </div>
   );
 }
