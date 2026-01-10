@@ -370,23 +370,37 @@ function getClient(): OpenAI {
   return new OpenAI({ apiKey });
 }
 
-// Get chat completion
-async function getChatCompletion(messages: ChatMessage[], toolbox?: SerializedToolbox): Promise<string> {
+// Stream chat completion using OpenAI API
+async function* streamChatCompletion(
+  messages: ChatMessage[],
+  toolbox?: SerializedToolbox
+): AsyncGenerator<string, void, unknown> {
   const client = getClient();
-  const model = process.env.OPENAI_MODEL || 'gpt-5.2-chat-latest';
+  const model = process.env.OPENAI_MODEL || 'gpt-4o';
   const systemPrompt = getSystemPrompt(toolbox);
 
-  const response = await client.responses.create({
+  const stream = await client.chat.completions.create({
     model,
-    instructions: systemPrompt,
-    input: messages.map((m) => ({
-      role: m.role,
-      content: m.content,
-    })),
-    max_output_tokens: 1500,
+    max_tokens: 4096,
+    messages: [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      ...messages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+    ],
+    stream: true,
   });
 
-  return response.output_text || '';
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      yield content;
+    }
+  }
 }
 
 // Vercel serverless function handler
@@ -450,18 +464,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Get the full response (typewriter-style streaming)
-    const fullResponse = await getChatCompletion(messages, toolbox);
-
-    // Simulate streaming by sending chunks
-    const words = fullResponse.split(/(\s+)/);
-    for (const word of words) {
-      res.write(`data: ${JSON.stringify({ content: word })}\n\n`);
+    // Stream the response in real-time
+    try {
+      for await (const chunk of streamChatCompletion(messages, toolbox)) {
+        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+      }
+      // Send done signal
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (streamError) {
+      console.error('Streaming error:', streamError);
+      // If headers already sent, end the response with error
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: 'Stream interrupted' })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({
+          error: {
+            code: 'STREAM_ERROR',
+            message: 'Failed to stream response',
+          },
+        });
+      }
     }
-
-    // Send done signal
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-    res.end();
   } catch (error) {
     console.error('Chat API error:', error);
 
