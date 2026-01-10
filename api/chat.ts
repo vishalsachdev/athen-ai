@@ -449,6 +449,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Log environment check (without exposing the key)
+    console.log('Environment check:', {
+      hasApiKey: !!process.env.OPENAI_API_KEY,
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      nodeVersion: process.version,
+    });
+
     const { messages, toolbox } = req.body as ChatRequestBody;
 
     // Validate request
@@ -499,6 +506,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.end();
     } catch (streamError) {
       console.error('Streaming error:', streamError);
+      console.error('Stream error stack:', streamError instanceof Error ? streamError.stack : 'No stack trace');
+      console.error('Stream error details:', {
+        name: streamError instanceof Error ? streamError.name : typeof streamError,
+        message: streamError instanceof Error ? streamError.message : String(streamError),
+      });
+      
       const errorMessage = streamError instanceof Error ? streamError.message : 'Failed to stream response';
       
       // If headers already sent, end the response with error in stream format
@@ -510,12 +523,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           error: {
             code: 'STREAM_ERROR',
             message: errorMessage,
+            details: process.env.NODE_ENV === 'development' ? (streamError instanceof Error ? streamError.stack : undefined) : undefined,
           },
         });
       }
     }
   } catch (error) {
     console.error('Chat API error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      hasApiKey: !!process.env.OPENAI_API_KEY,
+    });
+    
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
 
     // If headers already sent, end the stream with error in stream format
@@ -527,6 +548,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         error: {
           code: 'INTERNAL_ERROR',
           message: errorMessage,
+          details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : undefined) : undefined,
         },
       });
     }
