@@ -185,13 +185,101 @@ export function ChatInterface() {
     return matches.length;
   };
 
+  // Normalize numbered lists: fix markdown where content appears on a new line after the number
+  // ReactMarkdown interprets "1.\n\nText" as a list item with a paragraph, causing unwanted spacing
+  // We normalize to "1. Text" so content stays on the same line as the number
+  // This handles the root cause: AI generates numbered lists with newlines after the number
+  const normalizeNumberedLists = (markdown: string): string => {
+    // Process line by line to handle all edge cases properly
+    const lines = markdown.split('\n');
+    const result: string[] = [];
+    let i = 0;
+    
+    while (i < lines.length) {
+      const currentLine = lines[i].trim();
+      
+      // Check if this line is just a number (e.g., "1." or "1. " with optional whitespace)
+      const emptyNumberMatch = currentLine.match(/^(\d+\.)\s*$/);
+      
+      if (emptyNumberMatch) {
+        const number = emptyNumberMatch[1];
+        let j = i + 1;
+        
+        // Skip any blank lines after the number
+        while (j < lines.length && lines[j].trim().length === 0) {
+          j++;
+        }
+        
+        // If we've run out of lines, skip this orphaned number
+        if (j >= lines.length) {
+          i++;
+          continue;
+        }
+        
+        // Check if the next non-empty line starts with another number (next list item)
+        const nextLine = lines[j].trim();
+        if (/^\d+\./.test(nextLine)) {
+          // This was an orphaned number with no content, skip it
+          i++;
+          continue;
+        }
+        
+        // The next non-empty line contains the content for this list item
+        // Combine the number with that content on the same line
+        result.push(`${number} ${nextLine}`);
+        
+        // Process any continuation lines (if content spans multiple lines)
+        let k = j + 1;
+        while (k < lines.length) {
+          const continuationLine = lines[k].trim();
+          
+          // Stop if we hit another numbered list item
+          if (/^\d+\./.test(continuationLine)) {
+            break;
+          }
+          
+          // Stop if we hit multiple blank lines (likely end of list)
+          if (continuationLine.length === 0) {
+            // Check if next line is also blank or starts a new numbered item
+            if (k + 1 >= lines.length || lines[k + 1].trim().length === 0 || /^\d+\./.test(lines[k + 1].trim())) {
+              break;
+            }
+          }
+          
+          // Add continuation line as a regular line (will render as part of the list item)
+          if (continuationLine.length > 0) {
+            result.push(continuationLine);
+          }
+          
+          k++;
+        }
+        
+        // Skip blank line if present before next list item
+        if (k < lines.length && lines[k].trim().length === 0) {
+          k++;
+        }
+        
+        i = k;
+      } else {
+        // Regular line, keep as-is
+        result.push(lines[i]);
+        i++;
+      }
+    }
+    
+    return result.join('\n');
+  };
+
   // Render markdown content, removing tool card markers and showing indicator
   const renderContent = (content: string): ReactNode[] => {
     const toolCardPattern = /\[\[TOOL:[a-z0-9-]+\]\]/g;
     const toolCount = getToolCount(content);
     
     // Remove tool markers from content before rendering
-    const cleanedContent = content.replace(toolCardPattern, '').trim();
+    let cleanedContent = content.replace(toolCardPattern, '').trim();
+    
+    // Normalize numbered lists to ensure content is on same line as number
+    cleanedContent = normalizeNumberedLists(cleanedContent);
 
     return [
       // Render markdown for text content
@@ -221,9 +309,23 @@ export function ChatInterface() {
             // Style lists with more breathing room
             ul: ({ children }) => <ul className="list-disc list-inside space-y-2 my-4 pl-1">{children}</ul>,
             ol: ({ children }) => <ol className="list-decimal list-inside space-y-2 my-4 pl-1">{children}</ol>,
-            li: ({ children }) => <li className="text-slate-700 leading-relaxed">{children}</li>,
-            // Style paragraphs with more spacing
-            p: ({ children }) => <p className="mb-4 leading-relaxed">{children}</p>,
+            // List items: remove all margins from paragraphs inside list items
+            // This fixes the issue where "1.\n\nText" creates <li><p>Text</p></li> with unwanted spacing
+            // The normalization function should fix most cases, but this CSS handles edge cases
+            li: ({ children, ...props }) => {
+              return (
+                <li 
+                  className="text-slate-700 leading-relaxed [&>p]:mb-0 [&>p]:mt-0 [&>p:first-child]:inline" 
+                  {...props}
+                >
+                  {children}
+                </li>
+              );
+            },
+            // Style paragraphs with spacing, but list items will override margin via CSS selector above
+            p: ({ children, ...props }) => {
+              return <p className="mb-4 leading-relaxed" {...props}>{children}</p>;
+            },
             // Style strong/bold
             strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
             // Style horizontal rules with spacing

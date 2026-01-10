@@ -333,8 +333,14 @@ Your response MUST be well-formatted with proper spacing:
 - Put blank lines between different paragraphs for readability
 - Paragraphs can be 3-5 sentences now that we have more space
 - Use line breaks to create visual breathing room
-- **For numbered lists, ALWAYS keep the content on the SAME LINE as the number**: Write "1. **Toolbox Improvements** - description" NOT "1.\n**Toolbox Improvements** - description"
+- **ABSOLUTELY CRITICAL: For ANY numbered list, the content MUST be on the SAME LINE as the number**
+  - CORRECT: `1. **First item** - description here`
+  - CORRECT: `2. Second item with text immediately following`
+  - WRONG: `1.\n\n**First item** - description` (newline after number)
+  - WRONG: `1. \n**First item**` (newline after period)
+  - If you use numbered lists, write them as: `1. Content 2. Content 3. Content` all on single lines per item
 - **NEVER create numbered lists of questions** - ask only one question at a time, conversationally
+- **NEVER put a line break after a number and period** - always put a space and the content immediately
 
 ## Example Response
 
@@ -352,6 +358,8 @@ What specialty are you in? I can help you determine which option might work best
 
 - **NEVER ask multiple questions at once** - only one question per response, wait for their answer
 - **NEVER create numbered lists of questions** - ask questions conversationally, one at a time
+- **NEVER put a newline after a number in a numbered list** - always write "1. Text" on one line, never "1.\nText" or "1. \nText"
+- **NEVER format numbered lists with content on a separate line** - this creates visual spacing issues
 - Don't recommend tools not in your knowledge base
 - Don't make up pricing, features, or compliance status
 - Don't provide medical advice - you help with tools, not clinical decisions
@@ -420,77 +428,6 @@ async function* streamChatCompletion(
   }
 }
 
-// Generate suggested responses using OpenAI
-async function generateSuggestedResponses(assistantMessage: string): Promise<string[]> {
-  const client = getClient();
-  const model = process.env.OPENAI_MODEL || 'gpt-4o';
-
-  const prompt = `Based on the following assistant message from a healthcare AI tool consultant, generate exactly 3 short, conversational suggested responses that a user might want to click to continue the conversation. The suggestions should be:
-- Relevant to what the assistant just said
-- Conversational and natural (like quick replies)
-- 10-15 words maximum each
-- Useful follow-up questions or responses
-
-Assistant message:
-${assistantMessage}
-
-Generate exactly 3 suggestions, one per line, without numbers or bullets:`;
-
-  try {
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a UX assistant that generates helpful, short suggested responses for chat interfaces. Return only the suggestions, one per line, without numbers or formatting.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      max_tokens: 150,
-      temperature: 0.8,
-    });
-
-    if (response.choices && response.choices.length > 0) {
-      const content = response.choices[0].message?.content || '';
-      // Parse suggestions - split by newline and clean up
-      const suggestions = content
-        .split('\n')
-        .map(s => s.trim())
-        .filter(s => s.length > 0)
-        .slice(0, 3); // Ensure max 3
-
-      return suggestions.length > 0 ? suggestions : getFallbackSuggestions(assistantMessage);
-    }
-
-    return getFallbackSuggestions(assistantMessage);
-  } catch (error) {
-    console.error('Error generating suggestions:', error);
-    return getFallbackSuggestions(assistantMessage);
-  }
-}
-
-// Fallback suggestions if AI generation fails
-function getFallbackSuggestions(message: string): string[] {
-  const lowerMessage = message.toLowerCase();
-  
-  if (lowerMessage.includes('tool') || lowerMessage.includes('recommend')) {
-    return ['Tell me more about this', 'How do I get started?', 'What are the alternatives?'];
-  }
-  
-  if (lowerMessage.includes('specialty')) {
-    return ['Plastic Surgery', 'Dermatology', 'General Practice'];
-  }
-  
-  if (lowerMessage.includes('budget') || lowerMessage.includes('cost')) {
-    return ['Looking for free options', 'Budget under $100/month', 'Cost is flexible'];
-  }
-  
-  return ['Tell me more', 'What are my options?', 'How do I get started?'];
-}
-
 // Vercel serverless function handler
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle CORS
@@ -505,37 +442,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // Handle suggestions endpoint via query parameter
-  if (req.method === 'POST' && req.query.action === 'suggestions') {
-    try {
-      const { assistantMessage } = req.body as { assistantMessage: string };
-
-      if (!assistantMessage || typeof assistantMessage !== 'string') {
-        res.status(400).json({
-          error: {
-            code: 'INVALID_REQUEST',
-            message: 'assistantMessage is required and must be a string',
-          },
-        });
-        return;
-      }
-
-      const suggestions = await generateSuggestedResponses(assistantMessage);
-      res.json({ suggestions });
-      return;
-    } catch (error) {
-      console.error('Suggestions endpoint error:', error);
-      res.status(500).json({
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-        },
-      });
-      return;
-    }
-  }
-
-  // Only allow POST for main chat endpoint
+  // Only allow POST
   if (req.method !== 'POST') {
     res.status(405).json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'Only POST is allowed' } });
     return;
