@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { Tool, getToolById } from '../data/tools';
+import { Tool } from '../data/tools';
 import { getGuideByToolId } from '../data/guides';
 
 // Toolbox stages in clinical order
