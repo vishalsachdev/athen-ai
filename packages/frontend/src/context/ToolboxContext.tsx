@@ -56,11 +56,14 @@ interface ToolboxContextType {
   isToolInToolbox: (toolId: string) => boolean;
   filledStagesCount: number;
   getSerializedToolbox: () => SerializedToolbox;
+  unseenNewToolsCount: number;
+  markToolsAsSeen: () => void;
 }
 
 const ToolboxContext = createContext<ToolboxContextType | null>(null);
 
 const STORAGE_KEY = 'athen-toolbox';
+const UNSEEN_TOOLS_KEY = 'athen-unseen-tools-count';
 
 // Map tool category to toolbox stage
 export function getStageForToolCategory(category: Tool['category']): ToolboxStageId | null {
@@ -150,11 +153,30 @@ function saveToolboxToStorage(toolbox: ToolboxState): void {
 
 export function ToolboxProvider({ children }: { children: ReactNode }) {
   const [toolbox, setToolbox] = useState<ToolboxState>(loadToolboxFromStorage);
+  
+  // Track unseen new tools count (tools added but not yet viewed in Toolbox tab)
+  const [unseenNewToolsCount, setUnseenNewToolsCount] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(UNSEEN_TOOLS_KEY);
+      return saved ? parseInt(saved, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
 
   // Save to localStorage whenever toolbox changes
   useEffect(() => {
     saveToolboxToStorage(toolbox);
   }, [toolbox]);
+
+  // Save unseen count to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(UNSEEN_TOOLS_KEY, unseenNewToolsCount.toString());
+    } catch (e) {
+      console.error('Failed to save unseen tools count:', e);
+    }
+  }, [unseenNewToolsCount]);
 
   const getStageForTool = (tool: Tool): ToolboxStageId | null => {
     return getStageForToolCategory(tool.category);
@@ -164,10 +186,25 @@ export function ToolboxProvider({ children }: { children: ReactNode }) {
     const stage = getStageForTool(tool);
     if (!stage) return;
 
-    setToolbox(prev => ({
-      ...prev,
-      [stage]: tool,
-    }));
+    // Check if this tool is replacing an existing tool or adding a new one
+    setToolbox(prev => {
+      const wasEmpty = !prev[stage];
+      const isNewTool = wasEmpty || prev[stage]?.id !== tool.id;
+
+      if (isNewTool) {
+        // Increment unseen count when a new tool is added
+        setUnseenNewToolsCount(prevCount => prevCount + 1);
+      }
+
+      return {
+        ...prev,
+        [stage]: tool,
+      };
+    });
+  };
+
+  const markToolsAsSeen = () => {
+    setUnseenNewToolsCount(0);
   };
 
   const removeTool = (stageId: ToolboxStageId) => {
@@ -246,6 +283,8 @@ export function ToolboxProvider({ children }: { children: ReactNode }) {
         isToolInToolbox,
         filledStagesCount,
         getSerializedToolbox,
+        unseenNewToolsCount,
+        markToolsAsSeen,
       }}
     >
       {children}

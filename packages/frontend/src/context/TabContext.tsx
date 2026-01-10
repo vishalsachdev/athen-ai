@@ -157,6 +157,9 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const tabExists = initialTabs.some(t => t.id === initialActiveTab);
     return tabExists ? initialActiveTab : 'toolbox';
   });
+  
+  // Get toolbox context to mark tools as seen when Toolbox tab is opened
+  // We'll access this via a wrapper component that has access to both contexts
 
   // Ensure toolbox tab always exists
   useEffect(() => {
